@@ -1,48 +1,81 @@
 # lsym-memory
 
-lsym 项目记忆体仓库 - 用于保存 AI 助手在 lsym 项目工作过程中的记忆、知识和文档。
+> lsym 项目记忆体仓库 - 用于保存 AI 助手在 lsym 项目工作过程中的记忆、知识和文档
+
+---
 
 ## 📁 目录结构
 
 ```
 lsym-memory/
-├── project-overview/     # 项目概览
-├── architecture/         # 架构设计文档
-├── business-flows/       # 业务流程详解
-├── technical-decisions/  # 技术决策记录
-├── api-docs/            # API 接口文档
-├── common-issues/        # 常见问题与解决方案
-├── workflow/            # 工作流程与偏好
-├── knowledge-base/       # 知识库
-└── docs/                # 文档汇总
+├── CLAUDE.md                    # AI 工作配置（必读）
+├── README.md                    # 本文件
+├── docs/                        # 核心设计文档
+│   ├── SUPPLY_CHAIN_DESIGN_V5.5.md       # 完整设计文档（最权威）
+│   └── TRANSACTION_QUICK_REFERENCE.md    # 六大交易快速参考
+├── architecture/                # 架构设计文档
+│   ├── FRAMEWORK_BLUEPRINT.md            # 框架蓝图（新项目参考）
+│   └── FRAMEWORK_STRUCTURE.md            # 框架结构（TransSlot/QuerySlot 详解）
+├── technical-decisions/         # 技术决策记录
+│   └── BATCH_TRANSFER_IMPLEMENTATION.md  # 批量转账实现
+├── business-flows/              # 业务流程文档
+│   └── CONSUME_FLOW_DIAGRAMS.md          # 消费流程图
+├── workflow/                    # 工作流程与规范
+│   └── DOCUMENT_MANAGEMENT_RULES.md      # 文档管理规则
+├── api-docs/                    # API 接口文档
+├── knowledge-base/              # 知识库
+└── common-issues/               # 常见问题与解决方案
 ```
+
+---
 
 ## 🎯 项目信息
 
-| 项目 | 说明 |
+| 属性 | 值 |
 |------|------|
 | **项目名称** | lsym (餐饮资金体系) |
-| **本地路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy` |
+| **负责人** | 李蒙 (ssssgoldhunter) |
+| **主项目路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy` |
+| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory` |
+| **GitHub** | https://github.com/ssssgoldhunter/lsym-memory-hub |
 | **飞书文档** | https://jvn4jogcy6u.feishu.cn |
-| **主要技术** | Spring Boot, LiteFlow, MyBatis Plus, Redis, Nacos |
+
+**详细配置**: 请查看 [`CLAUDE.md`](./CLAUDE.md)
+
+---
+
+## 📚 核心文档速览
+
+### 六大交易流程
+
+| 流程 | 特点 | 快速查看 |
+|------|------|----------|
+| 消费 | 02膨胀金优先扣款，支持分账 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+| 充值 | 支持01现金+02膨胀金赠送 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+| 充值退款 | 原路退回，膨胀金收回 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+| 提现 | 自动提现+人工审核 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+| 转账 | 三层锁机制，支持批量 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+| 消费退款 | 按比例/按单退款 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+
+### 技术架构
+
+- **流程编排**: LiteFlow
+- **组件类型**: Pack → Check → Trans → After
+- **上下文**: TransSlot（交易）、QuerySlot（查询）
+- **详情**: [框架结构 →](./architecture/FRAMEWORK_STRUCTURE.md)
+
+---
 
 ## 📝 更新记录
 
-### 2026-03-02
-- 初始化记忆体仓库
-- 创建目录结构
-- 补充交易流程详解文档（v5.5）
+| 日期 | 更新内容 |
+|------|----------|
+| 2026-03-04 | 文档整理：删除 6 个重复文件，创建 CLAUDE.md |
+| 2026-03-03 | 文档迁移：从 slhy/md 迁移到记忆库 |
+| 2026-03-02 | 初始化记忆体仓库，补充交易流程详解 v5.5 |
 
-## 🔄 使用方式
-
-AI 助手会在此仓库中保存：
-- 项目架构知识
-- 业务流程详解
-- 技术决策记录
-- 常见问题解决方案
-- 用户偏好和工作流程
+---
 
 ## 📧 联系方式
 
-- 负责人：李蒙
-- GitHub：https://github.com/ssssgoldhunter
+- **GitHub**: https://github.com/ssssgoldhunter
