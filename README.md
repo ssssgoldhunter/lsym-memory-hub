@@ -15,7 +15,17 @@ lsym-memory/
 │   └── TRANSACTION_QUICK_REFERENCE.md    # 六大交易快速参考
 ├── architecture/                # 架构设计文档
 │   ├── FRAMEWORK_BLUEPRINT.md            # 框架蓝图（新项目参考）
-│   └── FRAMEWORK_STRUCTURE.md            # 框架结构（TransSlot/QuerySlot 详解）
+│   ├── FRAMEWORK_STRUCTURE.md            # 框架结构（TransSlot/QuerySlot 详解）
+│   └── TRANS_COMPONENT_STRUCTURE.md      # Trans 组件结构详解
+├── modules/                     # 模块文档（新增）
+│   ├── MODULE_FRONT.md                  # 前置服务模块
+│   ├── MODULE_MANAGEMENT.md              # 管理服务模块
+│   ├── MODULE_TASK.md                    # 任务调度模块
+│   ├── MODULE_DATA_BATCH.md              # 数据批处理模块
+│   ├── MODULE_REPORT.md                  # 报表模块
+│   ├── CHECK_COMPONENTS.md               # Check 组件详解
+│   ├── API_REFERENCE.md                  # API 接口文档
+│   └── DATABASE_SCHEMA.md                # 数据库表结构
 ├── technical-decisions/         # 技术决策记录
 │   └── BATCH_TRANSFER_IMPLEMENTATION.md  # 批量转账实现
 ├── business-flows/              # 业务流程文档
@@ -70,6 +80,7 @@ lsym-memory/
 
 | 日期 | 更新内容 |
 |------|----------|
+| 2026-03-06 | 模块文档补充：新增 8 个模块文档，包括 front/management/task/data-batch/report/check/api/database |
 | 2026-03-04 | 文档整理：删除 6 个重复文件，创建 CLAUDE.md |
 | 2026-03-03 | 文档迁移：从 slhy/md 迁移到记忆库 |
 | 2026-03-02 | 初始化记忆体仓库，补充交易流程详解 v5.5 |

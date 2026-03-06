@@ -39,8 +39,22 @@
 | ⭐⭐⭐ | 快速参考 | `docs/TRANSACTION_QUICK_REFERENCE.md` | 六大交易流程快速查询 |
 | ⭐⭐⭐ | 完整设计文档 | `docs/SUPPLY_CHAIN_DESIGN_V5.5.md` | 最权威的设计文档 |
 | ⭐⭐ | 框架结构 | `architecture/FRAMEWORK_STRUCTURE.md` | TransSlot/QuerySlot 详解 |
+| ⭐⭐ | 组件结构 | `architecture/TRANS_COMPONENT_STRUCTURE.md` | Trans 组件结构详解 |
 | ⭐ | 框架蓝图 | `architecture/FRAMEWORK_BLUEPRINT.md` | 新项目参考 |
 | ⭐ | 文档管理规则 | `workflow/DOCUMENT_MANAGEMENT_RULES.md` | 文档存储规范 |
+
+### 模块文档
+
+| 模块 | 文档 | 路径 | 说明 |
+|------|------|------|------|
+| 前置服务 | 前置服务模块 | `modules/MODULE_FRONT.md` | PA/ZX平台对接 |
+| 管理服务 | 管理服务模块 | `modules/MODULE_MANAGEMENT.md` | 商户、配置、结算管理 |
+| 任务调度 | 任务调度模块 | `modules/MODULE_TASK.md` | XXL-Job定时任务 |
+| 数据批处理 | 数据批处理模块 | `modules/MODULE_DATA_BATCH.md` | 批量数据处理 |
+| 报表服务 | 报表模块 | `modules/MODULE_REPORT.md` | 报表生成和查询 |
+| 校验组件 | Check组件 | `modules/CHECK_COMPONENTS.md` | Check组件详解 |
+| API文档 | API接口文档 | `modules/API_REFERENCE.md` | 完整API接口清单 |
+| 数据库 | 数据库表结构 | `modules/DATABASE_SCHEMA.md` | 核心表结构说明 |
 
 ---
 
