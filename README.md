@@ -18,6 +18,7 @@ lsym-memory/
 │   ├── FRAMEWORK_STRUCTURE.md            # 框架结构（TransSlot/QuerySlot 详解）
 │   └── TRANS_COMPONENT_STRUCTURE.md      # Trans 组件结构详解
 ├── modules/                     # 模块文档（新增）
+│   ├── MODULE_BASE.md                    # 基础服务模块
 │   ├── MODULE_FRONT.md                  # 前置服务模块
 │   ├── MODULE_MANAGEMENT.md              # 管理服务模块
 │   ├── MODULE_TASK.md                    # 任务调度模块
@@ -80,7 +81,7 @@ lsym-memory/
 
 | 日期 | 更新内容 |
 |------|----------|
-| 2026-03-06 | 模块文档补充：新增 8 个模块文档，包括 front/management/task/data-batch/report/check/api/database |
+| 2026-03-06 | 模块文档补充：新增 9 个模块文档，包括 base/front/management/task/data-batch/report/check/api/database |
 | 2026-03-04 | 文档整理：删除 6 个重复文件，创建 CLAUDE.md |
 | 2026-03-03 | 文档迁移：从 slhy/md 迁移到记忆库 |
 | 2026-03-02 | 初始化记忆体仓库，补充交易流程详解 v5.5 |
