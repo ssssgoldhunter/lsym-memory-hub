@@ -105,46 +105,68 @@ accountChangeReqList.add(req2);  // subId=123, mac=A, balance=-50 (同一账户!
 // 合并后: {subId=123, balance=-150}  // 一次更新成功
 ```
 
-### 调用链路确认
+---
 
-| 交易类型 | 批量接口 | ✅ CAS 支持 |
-|---------|----------|-------------|
-| 消费 | `batchChangeAccountForConsume` | ✅ |
-| 消费退款 | `batchChangeAccountForRefundConsume` | ✅ |
-| 充值 | `batchChangeAccountForRecharge` | ✅ |
-| 充值退款 | `batchChangeAccountForRefundRecharge` | ✅ |
-| 转账 | 直接调用 `updateCardSubAccount` | ✅ |
-| 提现 | 直接调用 `updateCardSubAccount` | ✅ |
+## 交易场景 MAC CAS 覆盖分析
 
-### mac 传递链路
+### 判断原则
 
-```
-数据库查询 (包含 mac)
-  ↓
-BasCardSubAccountTQueryRes (有 mac)
-  ↓
-slot.cardSubAccountMap
-  ↓
-Convert.convert(BasCardSubAccountTReq.class, queryRes) ← 自动复制 mac
-  ↓
-BasCardSubAccountTReq (有 mac = 旧 MAC)
-  ↓
-批量接口
-  ↓
-BasCardSubAccountTServiceImpl.updateCardSubAccount()
-  ↓
-Convert.convert(BasCardSubAccountT.class, request) ← 复制 request.mac
-  ↓
-basCardSubAccountT.setNewMac(getMac()) ← 保存旧 MAC
-  ↓
-重新计算新 MAC → setMac(新值)
-  ↓
-SQL: WHERE mac = #{req.mac} (旧值) SET mac = #{req.newMac} (新值)
-```
+| 条件 | 是否需要刷新 MAC |
+|------|-----------------|
+| **有 Redis 锁 + 只有一次账户更新** | ❌ 不需要 |
+| **有 Redis 锁 + 有多次账户更新** | ✅ 需要（每次更新前刷新） |
+| **没有 Redis 锁** | ✅ 需要（每次更新前刷新） |
 
-### 关键文件路径
+### 消费流程的3次账户更新
+
+| 步骤 | 组件 | 更新内容 | MAC刷新 |
+|------|------|---------|--------|
+| **第1次** | consumeTransFrozen | 冻结金额更新 | ❌ 不需要（冻结时已有最新MAC） |
+| **第2次** | consumeTransAfter | 账户余额更新 | ✅ 需要 |
+| **第3次** | consumeTransUnFrozen | 冻结金额更新 | ✅ 需要 |
+
+### Consume 模块场景汇总
+
+| 场景 | 流程 | Redis 锁 | 账户更新次数 | 需要刷新 MAC | 状态 |
+|------|------|---------|-------------|-------------|------|
+| **消费** | chainConsume | ✅ 有 | 3次（冻结→交易→解冻） | ✅ 需要 | ✅ 已处理 |
+| **消费退款** | chainConsumeRefund | ✅ 有 | 3次（04/01/02账户） | ✅ 需要 | ✅ 已处理 |
+| **充值** | chainRecharge | ✅ 有 | 1次 | ❌ 不需要 | ✅ 正确 |
+| **充值退款** | chainRefundRecharge | ✅ 有 | 1次 | ❌ 不需要 | ✅ 正确 |
+| **转账** | chainTransfer | ✅ 有 | 2次（付款+收款） | ✅ 需要 | ✅ 已处理 |
+| **内部转账** | chainTransferInner | ✅ 有 | 2次（付款+收款） | ❌ 不需要 | ✅ 正确 |
+| **预内部转账** | chainTransferInnerPre | - | 0次 | - | - |
+| **TI预转账** | chainTransferTiPre | - | 0次 | - | - |
+| **转账授权** | chainTransferAuth | ✅ 有 | 2次（付款+收款） | ✅ 需要 | ✅ 已处理 |
+
+### Task 模块场景汇总
+
+| 场景 | Redis 锁 | 账户更新次数 | 需要刷新 MAC | 状态 |
+|------|---------|-------------|-------------|------|
+| **提现 ZX** | ✅ 有 | 1次 | ✅ 需要 | ✅ 已处理 |
+| **提现 PA** | ✅ 有 | 1次 | ✅ 需要 | ✅ 已处理 |
+| **充值通知 ZX** | ✅ 有 | 1次 | ❌ 不需要 | ✅ 正确 |
+| **充值通知 PA** | ✅ 有 | 1次 | ❌ 不需要 | ✅ 正确 |
+| **AT转账** | ✅ 有 | 2次（付款+收款） | ✅ 需要 | ✅ 已处理 |
+
+### 已添加 MAC 刷新的组件
+
+| 组件 | 文件路径 |
+|------|---------|
+| ConsumeTransAfter | `fund-catering-consume/flow/component/trans/consume/consume/ConsumeTransAfter.java` |
+| ConsumeTransUnFrozen | `fund-catering-consume/flow/component/trans/consume/frozen/ConsumeTransUnFrozen.java` |
+| ConsumeTransRefundAfter | `fund-catering-consume/flow/component/trans/consumeRefund/ConsumeTransRefundAfter.java` |
+| ConsumeTransRefundModel1After | `fund-catering-consume/flow/component/trans/consumeRefund/ConsumeTransRefundModel1After.java` |
+| TransferTransAfter | `fund-catering-consume/flow/component/trans/transfer/api/TransferTransAfter.java` |
+| ZxWithDrawUpdateStatusAfterService | `fund-catering-task/service/impl/zx/ZxWithDrawUpdateStatusAfterService.java` |
+| PaWithDrawUpdateStatusAfterService | `fund-catering-task/service/impl/pa/PaWithDrawUpdateStatusAfterService.java` |
+
+---
+
+## 关键文件路径
 
 - **Service**: `slhy/fund-catering/fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slhy/catering/base/service/impl/BasCardSubAccountTServiceImpl.java`
 - **Mapper**: `slhy/fund-catering/fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slhy/catering/base/mapper/BasCardSubAccountTMapper.xml`
 - **Domain**: `slhy/fund-catering/fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slhy/catering/base/domain/BasCardSubAccountT.java`
 - **批量Service**: `slhy/fund-catering/fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slhy/catering/base/service/impl/AccountChangeBatchServiceImpl.java`
+- **刷新方法**: `slhy/fund-catering/fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/slot/BaseSlot.java` (refreshCardSubAccount)
