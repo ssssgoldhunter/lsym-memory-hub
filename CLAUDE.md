@@ -171,15 +171,21 @@ Pack → Check → Trans → After
 
 ### 任务结束流程
 
-> **约束项**: 在每次任务结束后，主动询问是否需要更新对话日志并同步到 GitHub
+> **约束项**: 在每次任务结束后，自动 push 到 GitHub
 
 **执行流程**:
-1. 任务完成后，询问用户：`"是否需要更新对话日志并同步到 GitHub？"`
-2. 如用户确认，则：
-   - 更新 `conversation-logs/YYYY-MM-DD.md`
-   - 记录本次任务的摘要和关键决策
-   - 提交并推送到 GitHub
-3. 如用户不需要，则继续等待下一个任务
+1. 任务完成后，自动执行 push
+2. 更新 `conversation-logs/YYYY-MM-DD.md`（如有必要）
+3. 提交并推送到 GitHub
+
+### 自动 Push 规则 (2026-03-12 新增)
+
+> **重要**: lsym-memory-hub 每次会话结束或必要时，**自动 push 到远程仓库**，保证在线 memory 实时同步
+
+**执行流程**:
+1. 有新提交时，自动执行 `git push origin main`
+2. 无需每次询问用户
+3. 确保记忆库与 GitHub 保持同步
 
 ### 对话日志更新时机
 
