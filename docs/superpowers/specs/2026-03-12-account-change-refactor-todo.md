@@ -179,17 +179,28 @@ slhy/fund-catering/fund-catering-base/.../controller/
 
 ---
 
-## 七、API 设计
+## 七、API 设计（2026-03-12 讨论确认）
 
-### 7.1 设计原则
+### 7.1 设计方案：方案A（按场景细分）
 
-按业务场景封装，一个 API 包含：
-1. 账户操作（更新子账户 + 更新膨胀金）
-2. 记录操作（变动明细 + 冻结明细 + Entry明细）
+经过头脑风暴讨论，确认采用**方案A**：按业务场景设计 13 个独立 API，每个 API 专注于一个场景。
 
-内部使用 `@Transactional` 保证事务一致性。
+**方案选择**：
+- 方案A（采用）：按场景细分 13 个 API，场景间隔离清晰
+- 方案B：统一 accountChange() 通过 bizType 区分（未采用）
 
-### 7.2 API 列表
+### 7.2 接口改动方式
+
+**扩展现有 BaseAccountServiceApi**，而非新建 AccountChangeApi：
+
+```
+现有: BaseAccountServiceApi (账户基础服务)
+新增: 13 个账户变动方法
+
+优点: 统一管理，避免接口散落
+```
+
+### 7.3 API 列表
 
 | 序号 | API 名称 | 场景 |
 |------|----------|------|
@@ -318,6 +329,43 @@ TransAfter (consume-service)
 
 ---
 
+## 十一、模块改造范围（2026-03-12 讨论确认）
+
+### 11.1 各模块改造内容
+
+| 模块 | 改造内容 | 说明 |
+|------|----------|------|
+| base-service | 新增 6 张表 + 13 个 API + 事务保证 | 核心改造 |
+| consume-service | 调用新 API，移除本地写变动明细 | 13 个 TransAfter 组件 |
+| task-service | 调用新 API，移除本地写变动明细 | 5 个 Service |
+| report-service | **无需改动** | 使用报表库，DTS 自动同步 |
+
+### 11.2 report-service 处理方式
+
+**确认结论**：report-service 使用独立报表库，数据通过 DTS 从 consume 库同步，**不需要迁移查询代码**。
+
+- consume 库迁移到 base 库后
+- DTS 会自动将 base 库数据同步到报表库
+- report-service 无需任何改动
+
+---
+
+## 十二、会议结论（2026-03-12）
+
+### 12.1 确认事项
+
+1. **API 设计**：采用方案A（按场景细分 13 个 API）
+2. **接口改动**：扩展现有 BaseAccountServiceApi
+3. **report-service**：DTS 同步，无需迁移
+
+### 12.2 待办事项
+
+- [ ] 数据库迁移时间窗口确认
+- [ ] 双写验证周期确认
+- [ ] 灰度策略确认
+
+---
+
 ## 相关文档
 
 - 设计文档：`docs/superpowers/specs/2026-03-11-account-change-refactor-design.md`
@@ -326,3 +374,4 @@ TransAfter (consume-service)
 
 **维护者**: Claude Code
 **更新日期**: 2026-03-12
+**讨论日期**: 2026-03-12（头脑风暴会议确认方案）

@@ -165,6 +165,26 @@ Pack → Check → Trans → After
 
 ---
 
+## 📋 待办事项（记忆体项目）
+
+### 账户变动模块重构（后期重构）
+
+| 属性 | 值 |
+|------|-----|
+| **状态**: 待处理 |
+| **创建日期**: 2026-03-12 |
+| **优先级**: 中 |
+
+**2026-03-12 头脑风暴讨论确认**：
+
+1. **API 设计**：采用方案A（按场景细分 13 个 API）
+2. **接口改动**：扩展现有 BaseAccountServiceApi
+3. **report-service**：DTS 同步，无需迁移
+
+**待办文档**: `docs/superpowers/specs/2026-03-12-account-change-refactor-todo.md`
+
+---
+
 ## 🤖 AI 自定义指令
 
 > 以下指令约束 AI 助手在 lsym 项目中的行为
