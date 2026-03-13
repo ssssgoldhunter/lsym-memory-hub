@@ -11,7 +11,7 @@
 | **项目名称** | lsym (餐饮资金体系) |
 | **负责人** | 李蒙 (ssssgoldhunter) |
 | **主项目路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy` |
-| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory` |
+| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory-hub` |
 | **GitHub 仓库** | https://github.com/ssssgoldhunter/lsym-memory-hub |
 | **飞书文档** | https://jvn4jogcy6u.feishu.cn |
 
@@ -113,15 +113,15 @@ Pack → Check → Trans → After
 
 ### 文档存储规则
 
-> **默认规则**：所有 md 文档和记忆体内容都放在 `lsym-memory/` 项目中
+> **默认规则**：所有 md 文档和记忆体内容都放在 `lsym-memory-hub/` 项目中
 
 | 类型 | 存储位置 |
 |------|----------|
-| md 文档 | `lsym-memory/` |
-| 记忆体内容 | `lsym-memory/` |
-| 项目文档 | `lsym-memory/docs/` |
-| 技术文档 | `lsym-memory/architecture/` |
-| 工作流程 | `lsym-memory/workflow/` |
+| md 文档 | `lsym-memory-hub/` |
+| 记忆体内容 | `lsym-memory-hub/` |
+| 项目文档 | `lsym-memory-hub/docs/` |
+| 技术文档 | `lsym-memory-hub/architecture/` |
+| 工作流程 | `lsym-memory-hub/workflow/` |
 
 ### 代码与文档分离
 
@@ -136,7 +136,7 @@ Pack → Check → Trans → After
 
 | 类型 | 存储位置 |
 |------|----------|
-| 对话日志 | `lsym-memory/conversation-logs/YYYY-MM-DD.md` |
+| 对话日志 | `lsym-memory-hub/conversation-logs/YYYY-MM-DD.md` |
 | 上下文记录 | 包含会话摘要、关键决策、文件变更 |
 
 **目的**: 防止对话过长，保持上下文连续性 |
