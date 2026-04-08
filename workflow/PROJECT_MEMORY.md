@@ -8,6 +8,7 @@
 - 记忆/文档仓：`/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory-hub`
 - 业务领域：`lsym` 餐饮资金体系
 - 主工作范围：`slhy/fund-catering`
+- 强制规则：凡是 `lsym` 开发项目任务，默认必须先加载 `lsym-memory-hub`（至少先读本文件与默认阅读顺序文档），再进行代码排查与实现
 
 ## 2. 技术主线
 
