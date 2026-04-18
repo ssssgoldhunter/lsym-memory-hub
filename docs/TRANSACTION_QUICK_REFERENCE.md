@@ -4,6 +4,8 @@
 
 ## 📋 流程概览
 
+### 核心交易流程
+
 | 流程 | 流程链 | 接口路径 | 说明 |
 |------|--------|----------|------|
 | **消费交易** | chainConsume | /scConsumeFree | 膨胀金优先扣款，支持分账 |
@@ -12,6 +14,34 @@
 | **提现交易** | chainWithDraw | /scWithdraw | 自动提现+人工审核 |
 | **转账交易** | chainTransfer | /scTransfer | 三层锁机制，支持批量 |
 | **消费退款** | chainConsumeRefund | /scConsumeRefund | 按比例/按单退款 |
+
+### 扩展交易流程
+
+| 流程 | 流程链 | 说明 |
+|------|--------|------|
+| **消费授权** | chainConsumeAuth | 需鉴权消费 |
+| **预消费** | chainConsumePre | 预消费冻结 |
+| **预消费完成** | chainConsumePreFinish | 预消费确认上账 |
+| **消费关闭** | chainConsumeClose | 预消费关闭解冻 |
+| **消费算价** | chainConsumeCal | 消费计算 |
+| **消费算价订单** | chainConsumeCalOrder | 订单级消费计算 |
+| **内部转账** | chainTransferInner | 内部转账 |
+| **内部转账预处理** | chainTransferInnerPre | 内部转账预处理 |
+| **TI转账预处理** | chainTransferTiPre | TI批量转账预处理 |
+| **授权转账** | chainTransferAuth | 授权转账 |
+| **转账重发验证** | chainTransferReSendVerification | 转账重发验证码 |
+| **冻结** | chainFrozen | 冻结操作 |
+| **解冻** | chainUnFrozen | 解冻操作 |
+
+### 查询流程
+
+| 流程 | 流程链 | 说明 |
+|------|--------|------|
+| **提现结果查询** | chainWithdrawResultQuery | 提现结果查询 |
+| **充值结果查询** | chainRechargeResultQuery | 充值结果查询 |
+| **冻结明细查询** | chainFrozenDetailQuery | 冻结明细查询 |
+| **消费结果查询** | chainConsumeResultQuery | 消费结果查询 |
+| **转账结果查询** | chainTransferResultQuery | 转账结果查询 |
 
 ---
 
@@ -229,5 +259,5 @@ consumeTransRefundPack → 业务校验 → 查询原消费
 
 ---
 
-**更新时间**: 2026-03-03
+**更新时间**: 2026-04-18
 **项目**: lsym-memory

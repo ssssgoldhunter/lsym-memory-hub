@@ -86,7 +86,37 @@
   - 不能简单按普通交易 After 组件方式改
   - 后续如果收口，需要先明确“回溯补偿”和“正常交易账户变更”是否共用统一模型
 
-## 5. 当前总体判断
+## 5. 2026-04 原子一致性改造进展
+
+> 以下为 2026-03 至 2026-04 期间的重大改造更新
+
+### 5.1 AccountChangeBatchService 已落地
+
+`fund-catering-base` 中新增 `AccountChangeBatchService`，提供按交易场景封装的统一账户批量变动接口：
+
+- `batchChangeAccountForConsume` — 消费
+- `batchChangeAccountForRecharge` — 充值
+- `batchChangeAccountForRefundRecharge` — 充值退款
+- `batchChangeAccountForRefundConsume` — 消费退款
+- `batchChangeAccount` — 通用（转账/提现等）
+
+源码：`fund-catering/fund-catering-base/fund-catering-base-service/.../service/AccountChangeBatchService.java`
+
+### 5.2 六大交易原子一致性更新
+
+截至 2026-04，以下交易已全部改造为原子一致性更新账户余额：
+- 消费 / 消费退款
+- 充值 / 充值退款
+- 转账 / 提现
+
+对应 git 提交：`cf34c8d9a1` 等系列提交（`lsym_20260116_limeng_restruct` 分支）
+
+### 5.3 交易回溯改造
+
+- 交易回溯和转账回溯逻辑已改造（`2b84b40f5a`）
+- 修复了转账回溯账户更新缺失 MAC 值导致 CAS 校验失败的问题（`c9ca4269bf`）
+
+## 6. 当前总体判断（更新于 2026-04）
 
 - `consume` 主交易路径已经大量接入分场景账户批量接口
 - `task` 模块仍混合存在：
@@ -95,7 +125,7 @@
   - 手工明细路径：`createTransAcctChange` / `createFrozenDetail`
 - 因此，账户变动重构当前最现实的主战场不是 `consume` 主流程，而是 `task` 后处理和撤销链路
 
-## 6. 银行明确失败 + 解冻时的状态落库规则
+## 7. 银行明确失败 + 解冻时的状态落库规则
 
 - 规则：
   - 如果渠道/银行返回的是“明确失败”，并且当前组件在异常分支里执行了解冻，那么主流水和子流水失败状态必须在当前组件内落库。
