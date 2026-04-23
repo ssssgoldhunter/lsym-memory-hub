@@ -56,6 +56,7 @@
     "recBizFunc": "2042",
     "bankEAccountId": "使用平台账户的J编号",
     "bankEMemberCode": null,
+    "fundTp": "银行配置的资金类型",
     "description": "自有资金虚拟账户映射"
   }
 ]
@@ -63,8 +64,11 @@
 
 **用途**：
 - 入金 Pack 组件：`trans_tp=03` 时读取 `cardCode` 跳过校验直接充值
-- 转账：读取 `payBizFunc`/`recBizFunc` 确定 bizFunc
+- 转账：读取 `payBizFunc`/`recBizFunc` 确定 bizFunc，读取 `fundTp` 作为银行资金类型
 - 查询：读取 `registerAttr` 确定登记簿类型
+
+**设计决策**：`fundTp` 是银行级别的固定配置，不通过 DTO 透传，由 Handle 实现从配置读取。
+`dealType` 按交易场景不同会变化（补贴/垫付/奖励等），在请求中传递。
 
 **映射关系**：一对一（一个自有资金卡号对应一个系统虚拟账户）
 
@@ -133,13 +137,15 @@
 - `bizFunc = "2041"`
 - `outAcctNo` = 自有资金账户 userId（从配置读 bankEAccountId）
 - `inAcctNo` = 收款用户 userId
-- reserve 填充：dealType、inAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime、fundTp
+- `fundTp` 从配置 `SELF_FUND_ACCOUNT_CONFIG` 读取（银行级别固定值，不透传）
+- reserve 填充：dealType、inAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime
 
 `platformReceive()`：
 - `bizFunc = "2042"`
 - `outAcctNo` = 付款用户 userId
 - `inAcctNo` = 自有资金账户 userId（从配置读 bankEAccountId）
-- reserve 填充：dealType、outAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime、fundTp
+- `fundTp` 从配置 `SELF_FUND_ACCOUNT_CONFIG` 读取
+- reserve 填充：dealType、outAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime
 
 #### 4.2.2 Query Handle 改造
 
@@ -147,29 +153,31 @@
 
 ```java
 /**
- * 登记簿交易明细查询
+ * 平台账户明细查询（通用命名，各银行通过配置区分实现方式）
  * ZX: bizFunc=24, registerAttr=12（自有资金登记簿）
+ * 其他银行: 可能通过 subAccountNo 等方式查询
  */
-<T> T queryRegisterDetails(BasRegisterDetailQueryReq request, BasPlatformSettleInfoQueryRes plaformInfo);
+<T> T queryPlatformAccountDetails(BasPlatformAccountDetailQueryReq request, BasPlatformSettleInfoQueryRes plaformInfo);
 ```
 
 **`AbstractTransQueryHandle`** 提供默认空实现。
 
 **`ZxTransQueryHandle` 实现：**
 
-`queryRegisterDetails()`：
+`queryPlatformAccountDetails()`：
 - `bizFunc = "24"`
 - `acctNo` = 自有资金账户编号（SM2加密）
 - reserve 填充：TRANS_TYPE、REGISTER_ATTR（从配置读）、TRANS_DATE、PAGE、laasSsn
 
 #### 4.2.3 新增请求 DTO
 
-**`BasRegisterDetailQueryReq`** — 登记簿明细查询请求：
+**`BasPlatformAccountDetailQueryReq`** — 平台账户明细查询请求：
 - 继承或参考 `BasTransDetailQueryReq`
 - 新增字段：`registerAttr`（登记簿类型）、`transType`（交易类型）
 
 **`BasTransTransferReq` 扩展**：
-- 新增字段：`dealType`（交易类型）、`fundTp`（资金类型）、`contractId`（合同编号）
+- 新增字段：`dealType`（交易类型，按交易场景传递）
+- `fundTp` 不加入 DTO，由 Handle 从配置读取
 
 #### 4.2.4 Router 层
 
@@ -228,7 +236,7 @@ if ("03".equals(transTp)) {
 **`ZxSelfFundNotifyJobService`**：
 - XXL-Job handler：`zxSelfFundNotifyJobService`
 - 配置参数：`ZX_SELF_FUND_TRANS_CONFIG`
-- 功能：调用 `queryRegisterDetails(bizFunc=24, registerAttr=12)` 查询自有资金登记簿明细
+- 功能：调用 `queryPlatformAccountDetails(bizFunc=24, registerAttr=12)` 查询自有资金登记簿明细
 - 获取明细后，与已充值记录比对（通过流水号去重）
 - 未充值的明细 → 调用 `transConsumeApi.rechargeTrans()` 充值
 - 时间窗口：跟 ZX 现有 Job 类似，整点处理昨天数据，非整点处理近 30 分钟
@@ -264,7 +272,7 @@ if ("03".equals(transTp)) {
 ```
 ZxSelfFundNotifyJobService（定时触发）
   → 读 ZX_SELF_FUND_TRANS_CONFIG
-  → queryRegisterDetails(bizFunc=24, registerAttr=12)
+  → queryPlatformAccountDetails(bizFunc=24, registerAttr=12)
   → 获取自有资金登记簿明细
   → 流水号去重
   → 创建通知记录（INIT）
