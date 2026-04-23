@@ -66,12 +66,14 @@
 ```
 
 **用途**：
-- 入金 Pack 组件：`trans_tp=03` 时读取 `cardCode` 跳过校验直接充值
-- 转账：读取 `payBizFunc`/`recBizFunc` 确定 bizFunc，读取 `payFundType`/`recFundType`、`payDealType`/`recDealType` 作为银行参数
-- 查询：读取 `registerAttr` 确定登记簿类型
+- 入金（trans_tp=03）：只需 `cardCode`，跳过校验直接充值，不使用收付款参数
+- 转账（LiteFlow）：在消费流程中判断哪方是自有资金账户，使用对应方向参数
+  - 付款卡是自有资金 → 读取 `payBizFunc`/`payFundType`/`payDealType` → 调 `platformPay`
+  - 收款卡是自有资金 → 读取 `recBizFunc`/`recFundType`/`recDealType` → 调 `platformReceive`
+- 补偿查询：读取 `registerAttr` 确定登记簿类型
 
 **设计决策**：`fundType` 和 `dealType` 都是银行级别的固定配置，按付款/收款方向分开配置。
-不通过 DTO 透传，由 Handle 实现从配置读取，全链路无需感知这些银行特有参数。
+不通过 DTO 透传，由 LiteFlow 组件根据卡号判断方向后从配置读取，全链路无需感知这些银行特有参数。
 
 **映射关系**：一对一（一个自有资金卡号对应一个系统虚拟账户）
 
