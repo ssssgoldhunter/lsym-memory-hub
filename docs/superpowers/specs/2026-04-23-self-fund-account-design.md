@@ -56,7 +56,10 @@
     "recBizFunc": "2042",
     "bankEAccountId": "使用平台账户的J编号",
     "bankEMemberCode": null,
-    "fundTp": "银行配置的资金类型",
+    "payFundType": "付款资金类型",
+    "recFundType": "收款资金类型",
+    "payDealType": "付款交易类型",
+    "recDealType": "收款交易类型",
     "description": "自有资金虚拟账户映射"
   }
 ]
@@ -64,11 +67,11 @@
 
 **用途**：
 - 入金 Pack 组件：`trans_tp=03` 时读取 `cardCode` 跳过校验直接充值
-- 转账：读取 `payBizFunc`/`recBizFunc` 确定 bizFunc，读取 `fundTp` 作为银行资金类型
+- 转账：读取 `payBizFunc`/`recBizFunc` 确定 bizFunc，读取 `payFundType`/`recFundType`、`payDealType`/`recDealType` 作为银行参数
 - 查询：读取 `registerAttr` 确定登记簿类型
 
-**设计决策**：`fundTp` 是银行级别的固定配置，不通过 DTO 透传，由 Handle 实现从配置读取。
-`dealType` 按交易场景不同会变化（补贴/垫付/奖励等），在请求中传递。
+**设计决策**：`fundType` 和 `dealType` 都是银行级别的固定配置，按付款/收款方向分开配置。
+不通过 DTO 透传，由 Handle 实现从配置读取，全链路无需感知这些银行特有参数。
 
 **映射关系**：一对一（一个自有资金卡号对应一个系统虚拟账户）
 
@@ -137,15 +140,15 @@
 - `bizFunc = "2041"`
 - `outAcctNo` = 自有资金账户 userId（从配置读 bankEAccountId）
 - `inAcctNo` = 收款用户 userId
-- `fundTp` 从配置 `SELF_FUND_ACCOUNT_CONFIG` 读取（银行级别固定值，不透传）
-- reserve 填充：dealType、inAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime
+- `fundType` 和 `dealType` 从配置读取 `payFundType`/`payDealType`
+- reserve 填充：inAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime
 
 `platformReceive()`：
 - `bizFunc = "2042"`
 - `outAcctNo` = 付款用户 userId
 - `inAcctNo` = 自有资金账户 userId（从配置读 bankEAccountId）
-- `fundTp` 从配置 `SELF_FUND_ACCOUNT_CONFIG` 读取
-- reserve 填充：dealType、outAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime
+- `fundType` 和 `dealType` 从配置读取 `recFundType`/`recDealType`
+- reserve 填充：outAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime
 
 #### 4.2.2 Query Handle 改造
 
@@ -176,8 +179,7 @@
 - 新增字段：`registerAttr`（登记簿类型）、`transType`（交易类型）
 
 **`BasTransTransferReq` 扩展**：
-- 新增字段：`dealType`（交易类型，按交易场景传递）
-- `fundTp` 不加入 DTO，由 Handle 从配置读取
+- `fundType`/`dealType` 均从配置读取，DTO 无需扩展银行特有字段
 
 #### 4.2.4 Router 层
 
