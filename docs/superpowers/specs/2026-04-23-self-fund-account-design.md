@@ -102,6 +102,11 @@
 
 复用平台账户的 `BasPlatformSettleInfoQueryRes`（appId/appKey/url/mchntId/mchntMbrId），无需额外配置。
 
+### 3.4 配置读取方式
+
+通过 `BaseServiceCommonApi.selectOneParamByRequest(paramName)` 从 `bas_param_t` 读取 JSON 配置，反序列化为配置对象。
+调用方（LiteFlow 组件/Task Job/Web Controller）负责读取配置并设置到请求 DTO 中，Front Handle 从 DTO 取值。
+
 ---
 
 ## 4. 模块改造设计
@@ -124,16 +129,16 @@
 /**
  * 平台付款（自有资金 → 用户登记簿）
  * ZX: bizFunc=2041, PA: 待定
- * config 参数：payBizFunc/payFundType/payDealType/bankEAccountId 从 SELF_FUND_ACCOUNT_CONFIG 读取
+ * 平台收付款参数由调用方从 SELF_FUND_ACCOUNT_CONFIG 读取并设入 request
  */
-<T> T platformPay(BasTransTransferReq request, SelfFundAccountConfig config, BasPlatformSettleInfoQueryRes plaformInfo);
+<T> T platformPay(BasTransTransferReq request, BasPlatformSettleInfoQueryRes plaformInfo);
 
 /**
  * 平台收款（用户登记簿 → 自有资金）
  * ZX: bizFunc=2042, PA: 待定
- * config 参数：recBizFunc/recFundType/recDealType/bankEAccountId 从 SELF_FUND_ACCOUNT_CONFIG 读取
+ * 平台收付款参数由调用方从 SELF_FUND_ACCOUNT_CONFIG 读取并设入 request
  */
-<T> T platformReceive(BasTransTransferReq request, SelfFundAccountConfig config, BasPlatformSettleInfoQueryRes plaformInfo);
+<T> T platformReceive(BasTransTransferReq request, BasPlatformSettleInfoQueryRes plaformInfo);
 ```
 
 **`AbstractTransTransferHandle`** 提供默认空实现（返回 null），PA 等暂未对接的银行无需强制实现。
@@ -141,19 +146,19 @@
 **`ZxTransTransferHandle` 实现：**
 
 `platformPay()`：
-- `bizFunc` 从 `config.getPayBizFunc()` 读取（"2041"）
-- `outAcctNo` = `config.getBankEAccountId()`（自有资金账户 userId）
+- `bizFunc` 从 `request.getBizFunc()` 读取（调用方已设为 "2041"）
+- `outAcctNo` = `request.getBankEAccountId()`（自有资金账户 userId）
 - `inAcctNo` = 收款用户 userId（request 传入）
-- `fundType` 从 `config.getPayFundType()` 读取
-- `dealType` 从 `config.getPayDealType()` 读取
+- `fundType` 从 `request.getFundType()` 读取
+- `dealType` 从 `request.getDealType()` 读取
 - reserve 填充：inAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime、fundTp、dealType
 
 `platformReceive()`：
-- `bizFunc` 从 `config.getRecBizFunc()` 读取（"2042"）
+- `bizFunc` 从 `request.getBizFunc()` 读取（调用方已设为 "2042"）
 - `outAcctNo` = 付款用户 userId（request 传入）
-- `inAcctNo` = `config.getBankEAccountId()`（自有资金账户 userId）
-- `fundType` 从 `config.getRecFundType()` 读取
-- `dealType` 从 `config.getRecDealType()` 读取
+- `inAcctNo` = `request.getBankEAccountId()`（自有资金账户 userId）
+- `fundType` 从 `request.getFundType()` 读取
+- `dealType` 从 `request.getDealType()` 读取
 - reserve 填充：outAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime、fundTp、dealType
 
 #### 4.2.2 Query Handle 改造
@@ -167,8 +172,9 @@
  * 平台账户登记簿明细查询
  * 现有 queryPlatformTransPages → bizFunc=25（交易资金账户明细）
  * 本方法 → ZX: bizFunc=24（登记簿交易明细），registerAttr 由配置决定
+ * 平台账户参数由调用方从 SELF_FUND_ACCOUNT_CONFIG 读取并设入 request
  */
-<T> T queryRegisterTransPages(BasPlatformAccountDetailQueryReq request, SelfFundAccountConfig config, BasPlatformSettleInfoQueryRes plaformInfo);
+<T> T queryRegisterTransPages(BasPlatformAccountDetailQueryReq request, BasPlatformSettleInfoQueryRes plaformInfo);
 ```
 
 **`AbstractTransQueryHandle`** 提供默认空实现。
@@ -177,25 +183,22 @@
 
 `queryRegisterTransPages()`：
 - `bizFunc = "24"`（ZX 固定，中信银行登记簿交易明细查询）
-- `acctNo` = `config.getBankEAccountId()`（SM2加密）
-- reserve 填充：TRANS_TYPE、REGISTER_ATTR（从 `config.getRegisterAttr()` 读取）、TRANS_DATE、PAGE、laasSsn
+- `acctNo` = `request.getBankEAccountId()`（SM2加密）
+- reserve 填充：TRANS_TYPE、REGISTER_ATTR（从 `request.getRegisterAttr()` 读取）、TRANS_DATE、PAGE、laasSsn
 
-#### 4.2.3 新增 DTO/Config 类
+#### 4.2.3 DTO 扩展
 
-**`SelfFundAccountConfig`** — 自有资金账户配置类（对应 `SELF_FUND_ACCOUNT_CONFIG`）：
-- `cardCode` — 系统卡号
-- `registerAttr` — 登记簿类型
-- `payBizFunc` / `recBizFunc` — 付款/收款业务用途
-- `bankEAccountId` — 银行账户J编号
-- `bankEMemberCode` — 银行会员账号
-- `payFundType` / `recFundType` — 付款/收款资金类型
-- `payDealType` / `recDealType` — 付款/收款交易类型
+**`BasTransTransferReq` 扩展** — 转账请求新增平台收付款字段：
+- `bizFunc` — 业务用途（2041/2042，调用方从配置读取设置）
+- `fundType` — 资金类型（调用方从配置读取设置）
+- `dealType` — 交易类型（调用方从配置读取设置）
+- `bankEAccountId` — 自有资金账户J编号（调用方从配置读取设置）
+
+调用方（LiteFlow 组件/Task Job）负责从 `SELF_FUND_ACCOUNT_CONFIG` 读取配置并设置到 request 中，Handle 直接从 request 取值。
 
 **`BasPlatformAccountDetailQueryReq`** — 平台账户明细查询请求：
 - 继承或参考 `BasTransDetailQueryReq`
-- 新增字段：`transType`（交易类型）、`transDate`（交易日期）、`page`（页码）
-
-**`BasTransTransferReq`**：无需扩展，银行特有参数全部通过 `SelfFundAccountConfig` 传入 Handle。
+- 新增字段：`transType`（交易类型）、`transDate`（交易日期）、`page`（页码）、`registerAttr`（登记簿类型）、`bankEAccountId`（自有资金账户J编号）
 
 #### 4.2.4 Router 层
 
@@ -225,7 +228,7 @@
 ```java
 // 伪代码
 if ("03".equals(transTp)) {
-    SelfFundAccountConfig config = getSelfFundConfig();
+    SelfFundAccountConfig config = readSelfFundConfig(); // 从 bas_param_t 读取
     companyInfo = queryByCardCode(config.getCardCode());
 } else {
     // 现有逻辑
