@@ -20,6 +20,25 @@
 | 区分方式 | 不通过 bankEAccountId 区分，通过 `registerAttr` 在银行接口中区分 |
 | 金额要求 | 系统虚拟账户余额必须与银行自有资金登记簿余额一致 |
 
+### 2.1 设计原则：平台账户转账抽象
+
+登记簿交易操作在业务层**独立抽象为"平台账户转账"**，不绑定特定银行的区分机制。
+
+**核心理念**：
+- 业务层只知道"平台账户转账"（方向、金额、目标账户），不关心底层实现
+- 银行差异由 `bas_param_t` 配置参数 + Front Handle 实现层屏蔽
+- ZX 用 `registerAttr` 区分，未来其他银行可能用 `subAccountNo` 或其他方式区分
+- 新银行接入只需：新增配置 + 实现 Handle 接口，业务层零改动
+
+```
+业务层：platformAccountTransfer(方向、金额、目标账户)
+  → 读 bas_param_t 配置
+  → Router 按 platformCode 路由到 Handle
+    → ZX Handle：registerAttr=12 + bizFunc=2041/2042
+    → 未来某银行 Handle：subAccountNo + 其他 bizFunc
+    → PA Handle：PA 的区分方式
+```
+
 ---
 
 ## 3. 配置设计
