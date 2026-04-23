@@ -160,22 +160,23 @@
 
 **`BasTransQueryHandle` 接口新增 1 个方法：**
 
+与现有 `queryPlatformTransPages`（bizFunc=25，交易资金账户明细）并列，新增专门查询登记簿明细的方法：
+
 ```java
 /**
- * 平台账户明细查询（通用命名，各银行通过配置区分实现方式）
- * ZX: bizFunc=24, registerAttr=12（自有资金登记簿）
- * 其他银行: 可能通过 subAccountNo 等方式查询
- * config 参数：registerAttr/bankEAccountId 从 SELF_FUND_ACCOUNT_CONFIG 读取
+ * 平台账户登记簿明细查询
+ * 现有 queryPlatformTransPages → bizFunc=25（交易资金账户明细）
+ * 本方法 → ZX: bizFunc=24（登记簿交易明细），registerAttr 由配置决定
  */
-<T> T queryPlatformAccountDetails(BasPlatformAccountDetailQueryReq request, SelfFundAccountConfig config, BasPlatformSettleInfoQueryRes plaformInfo);
+<T> T queryRegisterTransPages(BasPlatformAccountDetailQueryReq request, SelfFundAccountConfig config, BasPlatformSettleInfoQueryRes plaformInfo);
 ```
 
 **`AbstractTransQueryHandle`** 提供默认空实现。
 
 **`ZxTransQueryHandle` 实现：**
 
-`queryPlatformAccountDetails()`：
-- `bizFunc = "24"`
+`queryRegisterTransPages()`：
+- `bizFunc = "24"`（ZX 固定，中信银行登记簿交易明细查询）
 - `acctNo` = `config.getBankEAccountId()`（SM2加密）
 - reserve 填充：TRANS_TYPE、REGISTER_ATTR（从 `config.getRegisterAttr()` 读取）、TRANS_DATE、PAGE、laasSsn
 
@@ -202,7 +203,7 @@
 
 #### 4.2.5 Facade API 层
 
-在 `FrontTransQueryFacadeApi`（或 `FrontTransZxFacadeApi`）中新增对平台账户明细查询的 Feign 接口。
+在 `FrontTransQueryFacadeApi`（或 `FrontTransZxFacadeApi`）中新增登记簿明细查询 Feign 接口（与现有 `queryPlatformTransPages` 并列）。
 在 `FrontTransTransferFacadeApi`（或 `FrontTransZxFacadeApi`）中新增对平台付款/收款的 Feign 接口。
 供 Task 层补偿 Job 和 Consume 层 LiteFlow 调用。
 
@@ -259,7 +260,7 @@ if ("03".equals(transTp)) {
 **`ZxSelfFundNotifyJobService`**：
 - XXL-Job handler：`zxSelfFundNotifyJobService`
 - 配置参数：`ZX_SELF_FUND_TRANS_CONFIG`
-- 功能：调用 `queryPlatformAccountDetails(bizFunc=24, registerAttr=12)` 查询自有资金登记簿明细
+- 功能：调用 `queryRegisterTransPages(bizFunc=24, registerAttr=12)` 查询自有资金登记簿明细
 - 获取明细后，与已充值记录比对（通过流水号去重）
 - 未充值的明细 → 调用 `transConsumeApi.rechargeTrans()` 充值
 - 时间窗口：跟 ZX 现有 Job 类似，整点处理昨天数据，非整点处理近 30 分钟
@@ -295,7 +296,7 @@ if ("03".equals(transTp)) {
 ```
 ZxSelfFundNotifyJobService（定时触发）
   → 读 ZX_SELF_FUND_TRANS_CONFIG
-  → queryPlatformAccountDetails(bizFunc=24, registerAttr=12)
+  → queryRegisterTransPages(bizFunc=24, registerAttr=12)
   → 获取自有资金登记簿明细
   → 流水号去重
   → 创建通知记录（INIT）
