@@ -1,13 +1,13 @@
 # 自有资金账户（Self-Owned Fund Account）设计方案
 
-> 日期：2026-04-23
-> 状态：设计完成，待实施
+> 日期：2026-04-24（v2 业务调整）
+> 状态：设计已更新
 
 ## 1. 背景与目标
 
-中信银行为平台开立了"自有资金登记簿"（registerAttr=12），这是平台账户下的一个特殊子账户。银行不分配新的 bankEAccountId，所有操作共享平台现有银行账户，通过 `registerAttr` 区分业务类型。
+中信银行为平台开立了"自有资金登记簿"（registerAttr=12），这是平台账户下的一个特殊子账户。自有资金账户绑定了银行卡，具有完整的 `bank_e_account_id` 和 `bank_e_account_code`，系统内会为该银行卡建立完整的账户结构。
 
-**目标**：支持自有资金账户的入金（充值）、补偿查询、内部调账、转账（平台付款/收款）全流程。
+**目标**：支持自有资金账户的入金（充值）、内部调账、转账（平台付款/收款）全流程。
 
 ---
 
@@ -16,28 +16,24 @@
 | 概念 | 说明 |
 |------|------|
 | 自有资金账户 | 平台账户下的特殊子账户，`registerAttr=12`（自有资金登记簿） |
-| 系统虚拟账户 | company 表中 `bank_e_account_id=null`、`code=null` 的虚拟账户，映射自有资金卡号 |
-| 区分方式 | 不通过 bankEAccountId 区分，通过 `registerAttr` 在银行接口中区分 |
+| 银行卡绑定 | 自有资金账户有完整银行卡数据，`bank_e_account_id` 和 `bank_e_account_code` 正常存在 |
+| 入金方式 | 银行通知 `trans_tp=03`，有银行卡号（PAY_ACCNO），按 01/02 模式处理；补偿查询结果格式与普通一致 |
 | 金额要求 | 系统虚拟账户余额必须与银行自有资金登记簿余额一致 |
 
-### 2.1 设计原则：平台账户转账抽象
+### 2.1 关键业务确认
 
-登记簿交易操作在业务层**独立抽象为"平台账户转账"**，不绑定特定银行的区分机制。
+1. **自有资金账户有银行卡** — `company` 表中 `bank_e_account_id` 和 `bank_e_account_code` 不为 null
+2. **通知入金走 01/02 模式** — 银行通知数据 `trans_tp=03`，有 `PAY_ACCNO`（银行卡号），按 01/02 模式处理，通过银行卡反查内部账号
+3. **不需要额外补偿 Job** — 自有资金补偿查询结果格式与普通充值一致（trans_tp=01），现有补偿机制已覆盖
+4. **bankEAccountId/Code 在充值流程中不关键** — 核心充值靠 `cardCode` + `subAccountId` 驱动；`bankEAccountId` 仅在 04 子账户子记录中做记录存储
 
-**核心理念**：
+### 2.2 设计原则：平台账户转账抽象
+
+登记簿转账操作在业务层**独立抽象为"平台账户转账"**，不绑定特定银行的区分机制。
+
 - 业务层只知道"平台账户转账"（方向、金额、目标账户），不关心底层实现
 - 银行差异由 `bas_param_t` 配置参数 + Front Handle 实现层屏蔽
-- ZX 用 `registerAttr` 区分，未来其他银行可能用 `subAccountNo` 或其他方式区分
 - 新银行接入只需：新增配置 + 实现 Handle 接口，业务层零改动
-
-```
-业务层：platformAccountTransfer(方向、金额、目标账户)
-  → 读 bas_param_t 配置
-  → Router 按 platformCode 路由到 Handle
-    → ZX Handle：registerAttr=12 + bizFunc=2041/2042
-    → 未来某银行 Handle：subAccountNo + 其他 bizFunc
-    → PA Handle：PA 的区分方式
-```
 
 ---
 
@@ -54,58 +50,21 @@
     "registerAttr": "12",
     "payBizFunc": "2041",
     "recBizFunc": "2042",
-    "bankEAccountId": "使用平台账户的J编号",
-    "bankEMemberCode": null,
-    "payFundType": "付款资金类型",
-    "recFundType": "收款资金类型",
-    "payDealType": "付款交易类型",
-    "recDealType": "收款交易类型",
-    "description": "自有资金虚拟账户映射"
+    "bankEAccountId": "自有资金银行账户J编号",
+    "payFundType": "001002",
+    "recFundType": "001002",
+    "payDealType": "01",
+    "recDealType": "01"
   }
 ]
 ```
 
 **用途**：
-- 入金（trans_tp=03）：只需 `cardCode`，跳过校验直接充值，不使用收付款参数
 - 转账（LiteFlow）：在消费流程中判断哪方是自有资金账户，使用对应方向参数
   - 付款卡是自有资金 → 读取 `payBizFunc`/`payFundType`/`payDealType` → 调 `platformPay`
   - 收款卡是自有资金 → 读取 `recBizFunc`/`recFundType`/`recDealType` → 调 `platformReceive`
-- 补偿查询：读取 `registerAttr` 确定登记簿类型
 
-**设计决策**：`fundType` 和 `dealType` 都是银行级别的固定配置，按付款/收款方向分开配置。
-不通过 DTO 透传，由 LiteFlow 组件根据卡号判断方向后从配置读取，全链路无需感知这些银行特有参数。
-
-**映射关系**：一对一（一个自有资金卡号对应一个系统虚拟账户）
-
-### 3.2 补偿任务配置 — `ZX_SELF_FUND_TRANS_CONFIG`
-
-存储在 `bas_param_t`，`param_key = "ZX_SELF_FUND_TRANS_CONFIG"`。中信渠道自有资金池独享 Job。
-
-```json
-[
-  {
-    "operatorCode": "0010",
-    "platformCode": "UMS_PLAT_ZX",
-    "orgCode": "1214",
-    "firstOrgCode": "1234",
-    "bizFunc": "24",
-    "registerAttr": "12",
-    "transType": "99",
-    "queryTimeWindowMinutes": 30
-  }
-]
-```
-
-**用途**：自有资金补偿 Job 直接读取配置拼请求参数。
-
-### 3.3 银行连接参数
-
-复用平台账户的 `BasPlatformSettleInfoQueryRes`（appId/appKey/url/mchntId/mchntMbrId），无需额外配置。
-
-### 3.4 配置读取方式
-
-通过 `BaseServiceCommonApi.selectOneParamByRequest(paramName)` 从 `bas_param_t` 读取 JSON 配置，反序列化为配置对象。
-调用方（LiteFlow 组件/Task Job/Web Controller）负责读取配置并设置到请求 DTO 中，Front Handle 从 DTO 取值。
+> 入金（充值）不再使用此配置，因为自有资金账户有银行卡，通知和补偿走现有 01/02 逻辑。
 
 ---
 
@@ -114,10 +73,9 @@
 ### 4.1 Base 层 — 数据准备
 
 **脚本初始化**：
-- 新建 company 记录：`bank_e_account_id=null`，`code=null`
+- 新建 company 记录：`bank_e_account_id` 和 `bank_e_account_code` 正常赋值（自有资金银行卡）
 - 新建 04 子账户：关联上述 company
 - 插入 `SELF_FUND_ACCOUNT_CONFIG` 配置到 `bas_param_t`
-- 插入 `ZX_SELF_FUND_TRANS_CONFIG` 配置到 `bas_param_t`
 
 ### 4.2 Front 层 — 银行接口抽象
 
@@ -125,186 +83,61 @@
 
 **`BasTransTransferHandle` 接口新增 2 个方法：**
 
-```java
-/**
- * 平台付款（自有资金 → 用户登记簿）
- * ZX: bizFunc=2041, PA: 待定
- * 平台收付款参数由调用方从 SELF_FUND_ACCOUNT_CONFIG 读取并设入 request
- */
-<T> T platformPay(BasTransTransferReq request, BasPlatformSettleInfoQueryRes plaformInfo);
+- `platformPay(BasTransTransferReq request, BasPlatformSettleInfoQueryRes plaformInfo)` — 平台付款
+- `platformReceive(BasTransTransferReq request, BasPlatformSettleInfoQueryRes plaformInfo)` — 平台收款
 
-/**
- * 平台收款（用户登记簿 → 自有资金）
- * ZX: bizFunc=2042, PA: 待定
- * 平台收付款参数由调用方从 SELF_FUND_ACCOUNT_CONFIG 读取并设入 request
- */
-<T> T platformReceive(BasTransTransferReq request, BasPlatformSettleInfoQueryRes plaformInfo);
-```
-
-**`AbstractTransTransferHandle`** 提供默认空实现（返回 null），PA 等暂未对接的银行无需强制实现。
-
-**`ZxTransTransferHandle` 实现：**
-
-`platformPay()`：
-- `bizFunc` 从 `request.getBizFunc()` 读取（调用方已设为 "2041"）
-- `outAcctNo` = `request.getBankEAccountId()`（自有资金账户 userId）
-- `inAcctNo` = 收款用户 userId（request 传入）
-- `fundType` 从 `request.getFundType()` 读取
-- `dealType` 从 `request.getDealType()` 读取
-- reserve 填充：inAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime、fundTp、dealType
-
-`platformReceive()`：
-- `bizFunc` 从 `request.getBizFunc()` 读取（调用方已设为 "2042"）
-- `outAcctNo` = 付款用户 userId（request 传入）
-- `inAcctNo` = `request.getBankEAccountId()`（自有资金账户 userId）
-- `fundType` 从 `request.getFundType()` 读取
-- `dealType` 从 `request.getDealType()` 读取
-- reserve 填充：outAcctNm（SM2加密）、bussId、bussSubId、payDate、payTime、fundTp、dealType
-
-#### 4.2.2 Query Handle 改造
-
-**`BasTransQueryHandle` 接口新增 1 个方法：**
-
-与现有 `queryPlatformTransPages`（bizFunc=25，交易资金账户明细）并列，新增专门查询登记簿明细的方法：
-
-```java
-/**
- * 平台账户登记簿明细查询
- * 现有 queryPlatformTransPages → bizFunc=25（交易资金账户明细）
- * 本方法 → ZX: bizFunc=24（登记簿交易明细），registerAttr 由配置决定
- * 平台账户参数由调用方从 SELF_FUND_ACCOUNT_CONFIG 读取并设入 request
- */
-<T> T queryRegisterTransPages(BasPlatformAccountDetailQueryReq request, BasPlatformSettleInfoQueryRes plaformInfo);
-```
-
-**`AbstractTransQueryHandle`** 提供默认空实现。
-
-**`ZxTransQueryHandle` 实现：**
-
-`queryRegisterTransPages()`：
-- `bizFunc = "24"`（ZX 固定，中信银行登记簿交易明细查询）
-- `acctNo` = `request.getBankEAccountId()`（SM2加密）
-- reserve 填充：TRANS_TYPE、REGISTER_ATTR（从 `request.getRegisterAttr()` 读取）、TRANS_DATE、PAGE、laasSsn
-
-#### 4.2.3 DTO 扩展
-
-**`BasTransTransferReq` 扩展** — 转账请求新增平台收付款字段：
-- `bizFunc` — 业务用途（2041/2042，调用方从配置读取设置）
-- `fundType` — 资金类型（调用方从配置读取设置）
-- `dealType` — 交易类型（调用方从配置读取设置）
-- `bankEAccountId` — 自有资金账户J编号（调用方从配置读取设置）
-
-调用方（LiteFlow 组件/Task Job）负责从 `SELF_FUND_ACCOUNT_CONFIG` 读取配置并设置到 request 中，Handle 直接从 request 取值。
-
-**`BasPlatformAccountDetailQueryReq`** — 平台账户明细查询请求：
-- 继承或参考 `BasTransDetailQueryReq`
-- 新增字段：`transType`（交易类型）、`transDate`（交易日期）、`page`（页码）、`registerAttr`（登记簿类型）、`bankEAccountId`（自有资金账户J编号）
-
-#### 4.2.4 Router 层
-
-无需改动。`BeanPostProcessor` 自动发现 Handle 方法。
-
-#### 4.2.5 Facade API 层
-
-在 `FrontTransQueryFacadeApi`（或 `FrontTransZxFacadeApi`）中新增登记簿明细查询 Feign 接口（与现有 `queryPlatformTransPages` 并列）。
-在 `FrontTransTransferFacadeApi`（或 `FrontTransZxFacadeApi`）中新增对平台付款/收款的 Feign 接口。
-供 Task 层补偿 Job 和 Consume 层 LiteFlow 调用。
+**Zx 实现**：
+- `platformPay()`：bizFunc=2041, outAcctNo=自有资金 bankEAccountId, inAcctNo=目标用户
+- `platformReceive()`：bizFunc=2042, outAcctNo=用户, inAcctNo=自有资金 bankEAccountId
 
 ### 4.3 Web 层 — 通知入口
 
-**`ReverseNoticeController.transNotifyZx()` 改造：**
+**`ReverseNoticeController.transNotifyZx()` 无需特殊改造**。
 
-现有逻辑：只处理 `trans_tp` 为 `{01, 02}` 的通知。
-
-改造：
-- `trans_tp` 过滤集合新增 `03`（自有资金入金）
-- 当 `trans_tp = "03"` 时：
-  1. 跳过现有公司校验逻辑（不通过 bankEAccountCode 查公司）
-  2. 从 `SELF_FUND_ACCOUNT_CONFIG` 读取 `cardCode`
-  3. 用 `cardCode` 查找系统虚拟账户的 company
-  4. 走正常充值流程：`transConsumeApi.rechargeTrans()`，`accountType=04`
-  5. 创建通知记录时 `transType` 标记为 `03`
-
-```java
-// 伪代码
-if ("03".equals(transTp)) {
-    SelfFundAccountConfig config = readSelfFundConfig(); // 从 bas_param_t 读取
-    companyInfo = queryByCardCode(config.getCardCode());
-} else {
-    // 现有逻辑
-    companyInfo = queryByBankEAccountCode(mchntId);
-}
-```
+自有资金账户有银行卡数据，通知入金数据中 `trans_tp=03`、`PAY_ACCNO` 有值，按 01/02 模式处理，走和普通充值完全一样的路径：
+- `buildTPNotifyZxDto`：通过 `bankEAccountCode`（来自 `zxMchntId`）查公司
+- `executeRechargeProcess`：通过 `platformComCode` + `accountNoEnc`（加密银行卡号）查公司并充值
 
 ### 4.4 Consume 层 — 业务逻辑
 
-#### 4.4.1 入金 Pack 组件
+#### 4.4.1 入金兼容性
 
-**改造点**：`trans_tp=03` 分支处理
+`chainRecharge` LiteFlow 链路无需特殊改造。自有资金充值走 `transType=C`（普通充值），不使用 `transType=03`。
 
-- 判断 transType=03 → 标记为自有资金入金
-- 跳过标准账户校验（不校验 bankEAccountId、不校验余额上限等）
-- 从 `SELF_FUND_ACCOUNT_CONFIG` 获取 `cardCode`
-- 用 `cardCode` 构建 `ConsumeRechargeRequest`，`accountType=04`
-- 充值金额与银行通知金额一致
-
-#### 4.4.2 现有 IC 充值兼容性
-
-需确认 `chainRecharge` LiteFlow 链路中各组件（Pack/Check/Trans/After）对 `trans_tp=03` 是否有兼容性问题：
-- **Pack**：需改造，支持 03 类型数据打包
-- **Check**：需评估是否需要跳过某些校验
-- **Trans**：充值核心逻辑，accountType=04 应该兼容
-- **After**：后处理（通知消息等）应兼容
+- **Pack**：无需改造
+- **Check**：无需改造
+- **Trans**：充值核心逻辑，accountType=04 兼容
+- **After**：后处理兼容
 
 ### 4.5 Task 层 — 定时任务
 
-#### 4.5.1 新建自有资金补偿 Job
+**不需要新建自有资金补偿 Job**。
 
-**`ZxSelfFundNotifyJobService`**：
-- XXL-Job handler：`zxSelfFundNotifyJobService`
-- 配置参数：`ZX_SELF_FUND_TRANS_CONFIG`
-- 功能：调用 `queryRegisterTransPages(bizFunc=24, registerAttr=12)` 查询自有资金登记簿明细
-- 获取明细后，与已充值记录比对（通过流水号去重）
-- 未充值的明细 → 调用 `transConsumeApi.rechargeTrans()` 充值
-- 时间窗口：跟 ZX 现有 Job 类似，整点处理昨天数据，非整点处理近 30 分钟
-
-**`ZxSelfFundNotifyRechargeJobService`**：
-- XXL-Job handler：`zxSelfFundNotifyRechargeJobService`
-- 配置参数：`ZX_SELF_FUND_TRANS_CONFIG`（同上）
-- 功能：从通知记录表中查状态为 INIT 的自有资金通知记录，执行充值
-
-> 这是中信渠道自有资金池独有的 Job，不复用现有补偿机制。
+自有资金账户的补偿查询结果格式与普通充值一致（`trans_tp=01`，有银行卡号），现有 ZX 补偿机制已完全覆盖。
 
 ---
 
 ## 5. 数据流
 
-### 5.1 入金流程（trans_tp=03）
+### 5.1 入金流程（与普通充值一致）
 
 ```
-银行推送/Web通知（trans_tp=03）
+银行推送通知（trans_tp=03, PAY_ACCNO=自有资金银行卡号）
   → ReverseNoticeController 接收
-  → 判断 trans_tp=03
-  → 跳过标准校验
-  → 从 SELF_FUND_ACCOUNT_CONFIG 读 cardCode
-  → 查找系统虚拟账户 company
-  → 创建通知记录（transType=03）
+  → 通过 bankEAccountCode 查公司（与 01/02 一致）
+  → 创建通知记录
+  → executeRechargeProcess
+  → 通过 platformComCode + accountNoEnc 查公司
   → transConsumeApi.rechargeTrans()
-  → chainRecharge LiteFlow
+  → chainRecharge LiteFlow（transType=C）
   → 充值到 04 子账户
 ```
 
-### 5.2 补偿流程
+### 5.2 补偿流程（复用现有）
 
 ```
-ZxSelfFundNotifyJobService（定时触发）
-  → 读 ZX_SELF_FUND_TRANS_CONFIG
-  → queryRegisterTransPages(bizFunc=24, registerAttr=12)
-  → 获取自有资金登记簿明细
-  → 流水号去重
-  → 创建通知记录（INIT）
-  → ZxSelfFundNotifyRechargeJobService
-  → 查 INIT 状态记录
+ZxTransNotifyRechargeJob（现有Job）
+  → 查 INIT 状态通知记录
   → rechargeTrans() 充值
   → 更新状态 SUCCESS/FAIL
 ```
@@ -329,18 +162,14 @@ ZxSelfFundNotifyJobService（定时触发）
 
 | 阶段 | 模块 | 内容 |
 |------|------|------|
-| 1 | base | 脚本初始化 company + 04 账户 + bas_param_t 配置 |
-| 2 | front | Handle 接口抽象 + Zx 实现（platformPay/platformReceive/queryRegisterTransPages）+ DTO |
-| 3 | web | ReverseNoticeController 支持 trans_tp=03 |
-| 4 | consume | **必须改动**：RechargeTrans/RechargeTransAfter isAccess()加"03" + CommonConstants新增常量 + bankEAccountId null处理 |
-| 5 | consume | 入金 Pack 组件支持 03 分支 |
-| 6 | task | 新建 ZxSelfFundNotifyJobService + ZxSelfFundNotifyRechargeJobService |
+| 1 | base | 脚本初始化 company + 04 账户 + SELF_FUND_ACCOUNT_CONFIG 配置 |
+| 2 | front | Handle 接口抽象 + Zx 实现（platformPay/platformReceive）+ DTO 扩展 |
+| 3 | common | CommonConstants 新增 TRANS_TYPE_SELF_FUND="03"（保留用于标识） |
 
 ---
 
 ## 7. 待确认项
 
-- [ ] `chainRecharge` LiteFlow 链路对 trans_tp=03 的兼容性（详见第8节扫描结果）
 - [ ] 自有资金账户调账的具体业务场景和流程细节
 - [ ] 转账（2041/2042）的业务触发时机（手工/自动）
 - [ ] PA 银行自有资金支持时间节点
@@ -348,107 +177,40 @@ ZxSelfFundNotifyJobService（定时触发）
 
 ---
 
-## 8. 设计澄清与约束
+## 8. v1 → v2 变更说明
 
-### 8.1 通知记录
+### 8.1 变更原因
 
-- 自有资金入金（trans_tp=03）的通知记录继续写入 `trans_platform_notify_zx`
-- 流水号复用 `frscSenum`，格式不变
-- 现有 ZX 通知充值 Job 需排除 `transType=03` 的记录，避免错误处理
+自有资金账户实际绑定了银行卡，具有完整银行账户数据，通知和补偿查询结果格式与普通充值一致。
 
-### 8.2 补偿机制
+### 8.2 移除项
 
-- 补偿 Job 是全新编写的，使用新的 front 查询功能 `queryRegisterTransPages`（bizFunc=24）
-- 仅处理自有资金池的补偿，不复用现有补偿 Job
-- 补偿流程：扫描**当日所有数据**（分页获取），逐条判断是否需要补偿
-- 公司查询统一用 `SELF_FUND_ACCOUNT_CONFIG` 里的 `cardCode`
-- 必须遵守业务唯一性（流水号去重）
+| 移除内容 | 原因 |
+|---------|------|
+| `ZX_SELF_FUND_TRANS_CONFIG` 配置 | 不需要单独的补偿配置，复用现有 Job |
+| `ZxSelfFundNotifyRechargeService/Impl` | 不需要独立补偿逻辑 |
+| `ZxSelfFundNotifyJobService` | 不需要新 Job |
+| `ZxSelfFundNotifyRechargeJobService` | 不需要新 Job |
+| `FrontTransQueryFacadeApi.queryRegisterTransPages` | 不需要新查询接口 |
+| `BasPlatformAccountDetailQueryReq` DTO | 不需要新查询 DTO |
+| Front 层 `queryRegisterTransPages` Handle 实现 | 不需要新查询实现 |
+| ReverseNoticeController 03 特殊分支 | 03 有银行卡，走和 01/02 一样的路径 |
+| RechargeTrans/RechargeTransAfter 03 isAccess | 不再需要 transType=03，走普通 C 类型 |
+| `PARAM_SELF_FUND_ACCOUNT_CONFIG` 常量 | 不再用于入金，front 转账用配置名直接引用即可 |
+| `SELF_FUND_ACCOUNT_CONFIG` SQL（入金相关） | 入金不再使用此配置 |
 
-### 8.3 Router 路由
+### 8.3 保留项
 
-- 自有资金账户 accountType=04，跟普通 ZX 账户走同一个 Handle
-- `transTransfer`（bizFunc=27）和 `platformPay`/`platformReceive`（bizFunc=2041/2042）是同一 Handle 类的不同方法，不会冲突
-
-### 8.4 系统约束
-
-- 单运营商系统，`SELF_FUND_ACCOUNT_CONFIG` 不需要 `operatorCode` 字段
-- 每个系统只有一个自有资金账户映射
-
----
-
-## 9. chainRecharge 兼容性扫描结果
-
-### 9.1 扫描结论：transType="03" 会被阻断
-
-`rechargeTrans` 和 `rechargeTransAfter` 的 `isAccess()` 门控只允许 `"C"` 或 `"IC"`：
-
-```java
-slot.getTransType().equals(CommonConstants.TRANS_TYPE_C) ||
-slot.getTransType().equals(CommonConstants.TRANS_TYPE_IC)
-```
-
-传入 "03" 时，核心组件被跳过，充值不执行。
-
-### 9.2 组件扫描明细
-
-| 组件 | bankEAccountId=null | transType="03" | 风险 |
-|------|---------------------|----------------|------|
-| rechargeTransPack | 不涉及 | 不阻断 | SAFE |
-| accountCheck | 不涉及 | 不阻断 | SAFE |
-| merchantCheck | 不涉及 | 不阻断 | SAFE |
-| companyCheck | 加载null但不校验 | 不阻断 | SAFE |
-| bussinessInfoCheck | 不涉及 | 不阻断 | SAFE |
-| cardBinInfoCheck | 不涉及 | 不阻断 | SAFE |
-| rechargeActivityInfoCheck | 不涉及 | type=04自动跳过 | SAFE |
-| **rechargeTrans** | accountType=04路径写null | **isAccess()阻断** | **WILL_BREAK** |
-| **rechargeTransAfter** | 不直接引用 | **isAccess()阻断** | **WILL_BREAK** |
-
-### 9.3 必须改动项
-
-1. `CommonConstants` 新增 `TRANS_TYPE_SELF_FUND = "03"`
-2. `RechargeTrans.isAccess()` 加 `"03"` 到允许列表
-3. `RechargeTransAfter.isAccess()` 加 `"03"` 到允许列表
-4. `RechargeTrans` 中 accountType=04 路径，`bankEAccountId=null` 时跳过 `setBankEAccountCode`（不写 null 到交易记录）
+| 保留内容 | 原因 |
+|---------|------|
+| Front `platformPay`/`platformReceive` 抽象 | 转账场景仍需 |
+| `SELF_FUND_ACCOUNT_CONFIG` 配置（转账用途） | 转账时读取方向参数 |
+| `TRANS_TYPE_SELF_FUND = "03"` 常量 | 保留标识，当前入金不使用 |
+| `BasTransTransferReq` 扩展字段 | 转账 DTO 需要 bizFunc/fundType/dealType/bankEAccountId |
 
 ---
 
-## 10. 最终结论
-
-### 设计方案确认
-
-自有资金账户本质是**平台账户下通过 `registerAttr` 区分的特殊子账户**，不分配独立银行账号，共享平台银行连接参数。系统通过 `bas_param_t` 配置映射关系，业务层以"平台账户转账"抽象，银行差异收敛在 Front Handle 实现层。
-
-### 改动范围总览
-
-| 层级 | 改动类型 | 关键改动 |
-|------|---------|---------|
-| **base** | 新增 | company虚拟账户 + 04子账户 + 2个bas_param_t配置 |
-| **front** | 新增 | 3个Handle方法（platformPay/platformReceive/queryRegisterTransPages）+ Zx实现 + DTO扩展 |
-| **web** | 改造 | ReverseNoticeController支持trans_tp=03，跳过校验读配置充值 |
-| **consume** | **必须改造** | RechargeTrans/RechargeTransAfter isAccess()加"03" + bankEAccountId null处理 + Pack组件03分支 |
-| **task** | 新增 | 2个自有资金补偿Job（扫描当日数据+逐条判断补偿） |
-| **common** | 新增 | CommonConstants新增TRANS_TYPE_SELF_FUND="03" |
-
-### 风险点
-
-| 风险 | 等级 | 应对 |
-|------|------|------|
-| chainRecharge isAccess()阻断"03" | **高** | 必须改，否则充值静默失败 |
-| bankEAccountId=null写入交易记录 | **中** | RechargeTrans中null时跳过set |
-| 现有ZX充值Job扫到03记录 | **低** | 过滤条件排除transType=03 |
-
-### 实施顺序
-
-```
-1. base（数据准备）
-2. front（银行接口抽象 + Zx实现）
-3. common（常量定义）
-4. consume（isAccess()改造 + Pack组件03分支）  ← 关键，必须先验证
-5. web（通知入口支持03）
-6. task（新建补偿Job）
-```
-
-### 不在本期范围
+## 9. 不在本期范围
 
 - 调账流程（待确认业务场景）
 - 转账（2041/2042）LiteFlow集成（front接口先行，业务流程后续）
