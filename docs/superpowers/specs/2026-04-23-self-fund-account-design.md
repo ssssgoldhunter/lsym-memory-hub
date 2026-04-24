@@ -330,17 +330,82 @@ ZxSelfFundNotifyJobService（定时触发）
 | 阶段 | 模块 | 内容 |
 |------|------|------|
 | 1 | base | 脚本初始化 company + 04 账户 + bas_param_t 配置 |
-| 2 | front | Handle 接口抽象 + Zx 实现（platformPay/platformReceive/queryRegisterDetails）+ DTO |
+| 2 | front | Handle 接口抽象 + Zx 实现（platformPay/platformReceive/queryRegisterTransPages）+ DTO |
 | 3 | web | ReverseNoticeController 支持 trans_tp=03 |
-| 4 | consume | 入金 Pack 组件支持 03 分支 + 确认 IC 充值兼容性 |
-| 5 | task | 新建 ZxSelfFundNotifyJobService + ZxSelfFundNotifyRechargeJobService |
+| 4 | consume | **必须改动**：RechargeTrans/RechargeTransAfter isAccess()加"03" + CommonConstants新增常量 + bankEAccountId null处理 |
+| 5 | consume | 入金 Pack 组件支持 03 分支 |
+| 6 | task | 新建 ZxSelfFundNotifyJobService + ZxSelfFundNotifyRechargeJobService |
 
 ---
 
 ## 7. 待确认项
 
-- [ ] `chainRecharge` LiteFlow 链路对 trans_tp=03 的兼容性（Check 组件是否需要跳过部分校验）
+- [ ] `chainRecharge` LiteFlow 链路对 trans_tp=03 的兼容性（详见第8节扫描结果）
 - [ ] 自有资金账户调账的具体业务场景和流程细节
 - [ ] 转账（2041/2042）的业务触发时机（手工/自动）
 - [ ] PA 银行自有资金支持时间节点
 - [ ] 自有资金账户的账户变动明细记录策略（是否复用 AccountEntryAfterService）
+
+---
+
+## 8. 设计澄清与约束
+
+### 8.1 通知记录
+
+- 自有资金入金（trans_tp=03）的通知记录继续写入 `trans_platform_notify_zx`
+- 流水号复用 `frscSenum`，格式不变
+- 现有 ZX 通知充值 Job 需排除 `transType=03` 的记录，避免错误处理
+
+### 8.2 补偿机制
+
+- 补偿 Job 是全新编写的，使用新的 front 查询功能 `queryRegisterTransPages`（bizFunc=24）
+- 仅处理自有资金池的补偿，不复用现有补偿 Job
+- 补偿流程：扫描**当日所有数据**（分页获取），逐条判断是否需要补偿
+- 公司查询统一用 `SELF_FUND_ACCOUNT_CONFIG` 里的 `cardCode`
+- 必须遵守业务唯一性（流水号去重）
+
+### 8.3 Router 路由
+
+- 自有资金账户 accountType=04，跟普通 ZX 账户走同一个 Handle
+- `transTransfer`（bizFunc=27）和 `platformPay`/`platformReceive`（bizFunc=2041/2042）是同一 Handle 类的不同方法，不会冲突
+
+### 8.4 系统约束
+
+- 单运营商系统，`SELF_FUND_ACCOUNT_CONFIG` 不需要 `operatorCode` 字段
+- 每个系统只有一个自有资金账户映射
+
+---
+
+## 9. chainRecharge 兼容性扫描结果
+
+### 9.1 扫描结论：transType="03" 会被阻断
+
+`rechargeTrans` 和 `rechargeTransAfter` 的 `isAccess()` 门控只允许 `"C"` 或 `"IC"`：
+
+```java
+slot.getTransType().equals(CommonConstants.TRANS_TYPE_C) ||
+slot.getTransType().equals(CommonConstants.TRANS_TYPE_IC)
+```
+
+传入 "03" 时，核心组件被跳过，充值不执行。
+
+### 9.2 组件扫描明细
+
+| 组件 | bankEAccountId=null | transType="03" | 风险 |
+|------|---------------------|----------------|------|
+| rechargeTransPack | 不涉及 | 不阻断 | SAFE |
+| accountCheck | 不涉及 | 不阻断 | SAFE |
+| merchantCheck | 不涉及 | 不阻断 | SAFE |
+| companyCheck | 加载null但不校验 | 不阻断 | SAFE |
+| bussinessInfoCheck | 不涉及 | 不阻断 | SAFE |
+| cardBinInfoCheck | 不涉及 | 不阻断 | SAFE |
+| rechargeActivityInfoCheck | 不涉及 | type=04自动跳过 | SAFE |
+| **rechargeTrans** | accountType=04路径写null | **isAccess()阻断** | **WILL_BREAK** |
+| **rechargeTransAfter** | 不直接引用 | **isAccess()阻断** | **WILL_BREAK** |
+
+### 9.3 必须改动项
+
+1. `CommonConstants` 新增 `TRANS_TYPE_SELF_FUND = "03"`
+2. `RechargeTrans.isAccess()` 加 `"03"` 到允许列表
+3. `RechargeTransAfter.isAccess()` 加 `"03"` 到允许列表
+4. `RechargeTrans` 中 accountType=04 路径，`bankEAccountId=null` 时跳过 `setBankEAccountCode`（不写 null 到交易记录）
