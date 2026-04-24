@@ -8,12 +8,14 @@
 
 | 属性 | 值 |
 |------|------|
-| **项目名称** | lsym (餐饮资金体系) |
+| **项目名称** | lsym / slhy (餐饮资金体系) |
 | **负责人** | 李蒙 (ssssgoldhunter) |
 | **主项目路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy` |
-| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory` |
+| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory-hub` |
 | **GitHub 仓库** | https://github.com/ssssgoldhunter/lsym-memory-hub |
 | **飞书文档** | https://jvn4jogcy6u.feishu.cn |
+| **当前活跃分支** | `lsym_20260116_limeng_restruct` |
+| **生产分支** | `lsym_prod` |
 
 ---
 
@@ -22,11 +24,84 @@
 | 技术 | 版本 | 用途 |
 |------|------|------|
 | Java | 17 | 开发语言 |
-| Spring Boot | 2.x | 应用框架 |
+| Spring Boot | **3.2.4** | 应用框架 |
+| Spring Cloud | **2023.0.1** | 微服务治理 |
+| Spring Alibaba | **2023.0.1.0** | 云原生特性 |
 | LiteFlow | 最新版 | 流程编排引擎（核心） |
 | MyBatis Plus | 最新版 | ORM 框架 |
+| ShardingSphere | 5.3.2 | 分库分表 |
 | Redis | - | 分布式锁、缓存 |
+| RocketMQ | - | 消息队列 |
 | Nacos | - | 配置中心、服务注册发现 |
+| Druid | 1.2.23 | 数据库连接池 |
+| EasyExcel | 3.3.2 | Excel处理 |
+| MapStruct | - | 对象映射 |
+| Hutool | 5.8.21 | 工具库 |
+
+---
+
+## 🏗️ 项目架构
+
+### 整体架构：单体 + 微服务混合（转型中）
+
+```
+slhy/
+├── fund-catering/          # 原单体模块（8个子模块）
+├── auth-service/           # 认证授权中心
+├── gateway-service/        # API网关
+├── system-service/         # 主Web服务（整合fund-catering API + 管理功能）
+├── db-service/             # 数据库服务（ShardingSphere分库分表）
+├── routing-service/        # 支付路由（8个子模块：alipay/wxpay/unionpay/umspay等）
+├── reconcile-service/      # 对账服务
+├── notify-service/         # 通知服务（邮件+XMPP+RocketMQ）
+├── file-service/           # 文件存储（阿里云OSS）
+├── gen-service/            # 代码生成
+├── job-service/            # 定时任务（Quartz+XXL-JOB）
+├── portal-service/         # Portal门户
+├── migration-service/      # 数据迁移（pom.xml中已注释，暂未启用）
+├── common-core/            # 公共核心组件
+├── starter-modules/        # Spring Boot Starter组件
+├── api-modules/            # API定义（api-db/api-routing/api-system）
+└── ui-modules/             # 前端模块（7个）
+```
+
+### fund-catering 子模块（原单体）
+
+| 模块 | 说明 |
+|------|------|
+| fund-catering-base | 账户基础服务（开户/冻结/解冻/账户查询） |
+| fund-catering-consume | 消费服务（LiteFlow核心交易引擎） |
+| fund-catering-front | 前置服务（PA/ZX平台对接） |
+| fund-catering-task | 定时任务（提现/充值/转账/对账） |
+| fund-catering-web | Web接口层 |
+| fund-catering-management | 管理后台 |
+| fund-catering-data-batch | 数据批处理 |
+| fund-catering-report | 报表服务 |
+
+### 新微服务（详见 [MODULE_MICROSERVICES.md](modules/MODULE_MICROSERVICES.md)）
+
+| 服务 | 职责 | 关键技术 |
+|------|------|----------|
+| auth-service | 认证授权中心 | Spring Security + Nacos |
+| gateway-service | API网关 | Spring Cloud Gateway |
+| system-service | 主Web服务入口 | MapStruct + EasyExcel + 美团SDK |
+| db-service | 分库分表服务 | ShardingSphere |
+| routing-service | 支付路由 | 8个支付渠道模块 |
+| reconcile-service | 对账服务 | FTP/SFTP + 动态数据源 |
+| notify-service | 通知服务 | Jakarta Mail + Smack + RocketMQ |
+| file-service | 文件存储 | 阿里云OSS |
+| portal-service | 门户服务 | Portal Web |
+| gen-service | 代码生成 | Velocity |
+| job-service | 定时任务 | Quartz + XXL-JOB |
+
+### 基础设施模块
+
+| 模块 | 说明 |
+|------|------|
+| common-core | 公共组件（BaseController/AjaxResult/PageDomain等） |
+| starter-modules | Spring Boot Starter（nacos/security/redis/rocketMq/biz等） |
+| api-modules | API定义（api-db/api-routing/api-system） |
+| ui-modules | 前端（cashier/mgr-ui/mgr-ui-v2/dashboard/front/front-pc/front-pc-v3） |
 
 ---
 
@@ -36,8 +111,9 @@
 
 | 优先级 | 文档 | 路径 | 说明 |
 |--------|------|------|------|
-| ⭐⭐⭐ | 快速参考 | `docs/TRANSACTION_QUICK_REFERENCE.md` | 六大交易流程快速查询 |
+| ⭐⭐⭐ | 快速参考 | `docs/TRANSACTION_QUICK_REFERENCE.md` | 六大交易+预消费+冻结流程快速查询 |
 | ⭐⭐⭐ | 完整设计文档 | `docs/SUPPLY_CHAIN_DESIGN_V5.5.md` | 最权威的设计文档 |
+| ⭐⭐ | 账户变动源码映射 | `docs/ACCOUNT_CHANGE_SOURCE_MAP.md` | 交易场景→源码→账户变动入口映射 |
 | ⭐⭐ | 框架结构 | `architecture/FRAMEWORK_STRUCTURE.md` | TransSlot/QuerySlot 详解 |
 | ⭐⭐ | 组件结构 | `architecture/TRANS_COMPONENT_STRUCTURE.md` | Trans 组件结构详解 |
 | ⭐ | 框架蓝图 | `architecture/FRAMEWORK_BLUEPRINT.md` | 新项目参考 |
@@ -47,28 +123,53 @@
 
 | 模块 | 文档 | 路径 | 说明 |
 |------|------|------|------|
+| 微服务 | 微服务架构 | `modules/MODULE_MICROSERVICES.md` | 12+新微服务模块文档 |
 | 基础服务 | 基础服务模块 | `modules/MODULE_BASE.md` | 账户/商户/平台对接（399文件） |
 | 前置服务 | 前置服务模块 | `modules/MODULE_FRONT.md` | PA/ZX平台对接（214文件） |
 | 管理服务 | 管理服务模块 | `modules/MODULE_MANAGEMENT.md` | 商户、配置、结算管理（167文件） |
 | 任务调度 | 任务调度模块 | `modules/MODULE_TASK.md` | XXL-Job定时任务（217文件） |
 | 数据批处理 | 数据批处理模块 | `modules/MODULE_DATA_BATCH.md` | 批量数据处理（100+文件） |
 | 报表服务 | 报表模块 | `modules/MODULE_REPORT.md` | 报表生成和查询（50+文件） |
+| 清结算主模块 | fund-catering模块 | `modules/MODULE_FUND_CATERING.md` | 完整模块结构与账户变动 |
 | 校验组件 | Check组件 | `modules/CHECK_COMPONENTS.md` | Check组件详解 |
 | API文档 | API接口文档 | `modules/API_REFERENCE.md` | 完整API接口清单 |
 | 数据库 | 数据库表结构 | `modules/DATABASE_SCHEMA.md` | 核心表结构说明 |
+| 账户开户 | 开户模块 | `modules/ACCOUNT_OPENING.md` | 预开户与用户注册区别 |
+
+### 技术决策与计划
+
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| MAC并发修复 | `technical-decisions/MAC_CONCURRENCY_FIX.md` | MAC刷新+CAS并发保护 |
+| 批量转账实现 | `technical-decisions/BATCH_TRANSFER_IMPLEMENTATION.md` | 批量上账业务 |
+| MAC CAS设计 | `docs/plans/2026-03-10-mac-cas-design.md` | CAS乐观锁方案 |
+| 账户变动重构设计 | `docs/superpowers/specs/2026-03-11-account-change-refactor-design.md` | 6张表迁移方案 |
+| 账户变动重构TODO | `docs/superpowers/specs/2026-03-12-account-change-refactor-todo.md` | 重构待办 |
+| task模块账户变动统一 | `docs/plans/2026-03-17-task-account-change-unification-plan.md` | task模块改造方案 |
+| NPK商户改进任务 | `docs/plans/2026-04-12-npk-mchnt-improvement-task.md` | npk_mchnt能力完善 |
 
 ---
 
-## 🎯 六大核心交易流程
+## 🎯 核心交易流程（LiteFlow链）
 
-| 流程 | 流程链 | 接口 | 特点 |
-|------|--------|------|------|
-| **消费** | chainConsume | /scConsumeFree | 02膨胀金优先扣款，支持分账 |
-| **充值** | chainRecharge | /scRecharge | 支持01现金+02膨胀金赠送 |
-| **充值退款** | chainRefundRecharge | /scRefundRecharge | 原路退回，膨胀金收回 |
-| **提现** | chainWithDraw | /scWithdraw | 自动提现+人工审核 |
-| **转账** | chainTransfer | /scTransfer | 三层锁机制，支持批量 |
-| **消费退款** | chainConsumeRefund | /scConsumeRefund | 按比例/按单退款 |
+| 流程 | 流程链 | 说明 |
+|------|--------|------|
+| **消费** | chainConsume | 02膨胀金优先扣款，支持分账 |
+| **消费授权** | chainConsumeAuth | 需鉴权消费 |
+| **预消费** | chainConsumePre | 预消费冻结 |
+| **预消费完成** | chainConsumePreFinish | 预消费确认 |
+| **消费关闭** | chainConsumeClose | 预消费关闭解冻 |
+| **消费算价** | chainConsumeCal | 消费计算 |
+| **消费算价订单** | chainConsumeCalOrder | 订单级消费计算 |
+| **充值** | chainRecharge | 支持01现金+02膨胀金赠送 |
+| **充值退款** | chainRefundRecharge | 原路退回，膨胀金收回 |
+| **提现** | chainWithDraw | 自动提现+人工审核 |
+| **转账** | chainTransfer | 三层锁机制，支持批量 |
+| **转账(内部)** | chainTransferInner | 内部转账 |
+| **转账(授权)** | chainTransferAuth | 授权转账 |
+| **消费退款** | chainConsumeRefund | 按比例/按单退款 |
+| **冻结** | chainFrozen | 冻结操作 |
+| **解冻** | chainUnFrozen | 解冻操作 |
 
 ### 子账户类型
 
@@ -102,10 +203,14 @@ Pack → Check → Trans → After
 
 | 类型 | 路径 |
 |------|------|
-| 消费服务 | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy/fund-catering/fund-catering-consume` |
-| LiteFlow 配置 | `fund-catering-consume-service/src/main/resources/liteflow/` |
+| 消费服务 | `slhy/fund-catering/fund-catering-consume` |
+| LiteFlow 配置 | `fund-catering-consume/fund-catering-consume-service/src/main/resources/liteflow/` |
 | Trans 组件 | `flow/component/trans/` |
 | Query 组件 | `flow/component/query/` |
+| 账户变动批量服务 | `fund-catering-base/.../service/AccountChangeBatchService.java` |
+| 账户变动查询 | `fund-catering-web/.../query/AcctChangeQueryController.java` |
+| NPK模块 | `system-service/.../catering/controller/Npk*Controller.java` |
+| 支付路由 | `routing-service/routing-{alipay|wxpay|unionpay|umspay|...}/` |
 
 ---
 
@@ -113,15 +218,15 @@ Pack → Check → Trans → After
 
 ### 文档存储规则
 
-> **默认规则**：所有 md 文档和记忆体内容都放在 `lsym-memory/` 项目中
+> **默认规则**：所有 md 文档和记忆体内容都放在 `lsym-memory-hub/` 项目中
 
 | 类型 | 存储位置 |
 |------|----------|
-| md 文档 | `lsym-memory/` |
-| 记忆体内容 | `lsym-memory/` |
-| 项目文档 | `lsym-memory/docs/` |
-| 技术文档 | `lsym-memory/architecture/` |
-| 工作流程 | `lsym-memory/workflow/` |
+| md 文档 | `lsym-memory-hub/` |
+| 记忆体内容 | `lsym-memory-hub/` |
+| 项目文档 | `lsym-memory-hub/docs/` |
+| 技术文档 | `lsym-memory-hub/architecture/` |
+| 工作流程 | `lsym-memory-hub/workflow/` |
 
 ### 代码与文档分离
 
@@ -136,10 +241,8 @@ Pack → Check → Trans → After
 
 | 类型 | 存储位置 |
 |------|----------|
-| 对话日志 | `lsym-memory/conversation-logs/YYYY-MM-DD.md` |
+| 对话日志 | `lsym-memory-hub/conversation-logs/YYYY-MM-DD.md` |
 | 上下文记录 | 包含会话摘要、关键决策、文件变更 |
-
-**目的**: 防止对话过长，保持上下文连续性 |
 
 ---
 
@@ -147,21 +250,21 @@ Pack → Check → Trans → After
 
 | 机制 | 说明 |
 |------|------|
-| **MAC 校验** | 确保交易数据完整性，防篡改 |
+| **MAC + CAS** | MAC字段作为CAS乐观锁，确保并发更新安全 |
 | **分布式锁** | Redis 锁，基于 cardCode，5分钟超时 |
 | **幂等性** | 基于 transNo，Redis 缓存，1小时过期 |
 
 ---
 
-## 📊 性能指标
+## 🔥 近期开发重点（截至2026-04）
 
-| 交易类型 | 响应时间(P99) | 吞吐量(TPS) |
-|----------|---------------|-------------|
-| 消费 | 500ms | 1000 |
-| 充值 | 300ms | 500 |
-| 提现 | 1000ms | 100 |
-| 转账 | 500ms | 300 |
-| 消费退款 | 500ms | 200 |
+1. **账户变动原子一致性改造** — 六大交易全部使用原子一致性更新账户余额
+2. **AccountChangeBatchService** — 新增统一账户批量变动服务（按交易场景封装API）
+3. **交易回溯改造** — 交易回溯和转账回溯逻辑改造
+4. **CAS校验修复** — 修复转账回溯MAC值缺失导致CAS校验失败
+5. **冻结流水号唯一校验** — 新增冻结流水号唯一性校验
+6. **NPK商户模块** — 新增NPK商户/门店/业务项目管理（system-service）
+7. **消费退款汇总口径修正** — 修正汇总口径与交易类型
 
 ---
 
@@ -187,8 +290,6 @@ Pack → Check → Trans → After
 
 ## 🤖 AI 自定义指令
 
-> 以下指令约束 AI 助手在 lsym 项目中的行为
-
 ### 任务结束流程
 
 > **约束项**: 在每次任务结束后，自动 push 到 GitHub
@@ -198,7 +299,7 @@ Pack → Check → Trans → After
 2. 更新 `conversation-logs/YYYY-MM-DD.md`（如有必要）
 3. 提交并推送到 GitHub
 
-### 自动 Push 规则 (2026-03-12 新增)
+### 自动 Push 规则
 
 > **重要**: lsym-memory-hub 每次会话结束或必要时，**自动 push 到远程仓库**，保证在线 memory 实时同步
 
@@ -219,5 +320,5 @@ Pack → Check → Trans → After
 
 ---
 
-**更新日期**: 2026-03-04
+**更新日期**: 2026-04-18
 **维护者**: ssssgoldhunter

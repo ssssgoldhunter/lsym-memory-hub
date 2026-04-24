@@ -118,20 +118,74 @@ slhy/fund-catering/
 | 5 | trans_acct_frozen_change_detail_t | 冻结明细表 |
 | 6 | trans_acct_change_entry_detail_t | 变更Entry明细表 |
 
-### API 封装规划
+### API 封装现状（AccountChangeBatchService）
 
-> 迁移后，base-service 将提供统一的账户变动 API，每个交易场景对应一个 API
+> 已落地实现：fund-catering-base 中 `AccountChangeBatchService` 提供统一账户批量变动接口
 
-| 序号 | 交易场景 API | 说明 |
-|------|-------------|------|
-| 1 | 消费账户变动 | 冻结+账户变动+解冻+Entry上账 |
-| 2 | 充值账户变动 | 账户变动 |
-| 3 | 消费退款(04)账户变动 | 冻结+账户变动+解冻 |
-| 4 | 消费退款(01)账户变动 | 账户变动 |
-| 5 | 充值赠送账户变动 | 账户变动(膨胀金) |
-| 6 | 转账账户变动 | 冻结+账户变动+解冻 |
-| 7 | 提现账户变动 | 冻结+账户变动+解冻 |
-| 8 | 预消费账户变动 | 冻结 |
-| 9 | 预消费完成账户变动 | 冻结+账户变动+解冻+Entry上账 |
-| 10 | 冻结账户变动 | 冻结 |
-| 11 | 解冻账户变动 | 解冻 |
+**源码位置**: `fund-catering/fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slhy/catering/base/service/AccountChangeBatchService.java`
+
+| 序号 | 方法 | 交易场景 | 说明 |
+|------|------|----------|------|
+| 1 | `batchChangeAccountForConsume` | 消费 | 冻结+账户变动+解冻+Entry上账 |
+| 2 | `batchChangeAccountForRecharge` | 充值 | 账户变动 |
+| 3 | `batchChangeAccountForRefundRecharge` | 充值退款 | 账户变动 |
+| 4 | `batchChangeAccountForRefundConsume` | 消费退款 | 冻结+账户变动+解冻 |
+| 5 | `batchChangeAccount` | 通用 | 转账/提现等通用账户变动 |
+
+**核心改造**：六大交易（消费/充值/充值退款/消费退款/转账/提现）已全部使用 **原子一致性** 更新账户余额。
+
+### 账户变动查询（AcctChangeQueryController）
+
+**源码位置**: `fund-catering/fund-catering-web/.../query/AcctChangeQueryController.java`
+
+| 接口 | 说明 |
+|------|------|
+| `scTransAccChange` | 余额变动记录查询 |
+| `scTransAcctSumChange` | 子账户变动明细（热库） |
+| `scTransAcctActSumChange` | 子账户科目变动明细（热库） |
+| `scTransAcctSumChange02` | 02子账户变动明细（热库） |
+| `scTransAcctActSumChange02` | 02科目变动明细（热库） |
+| `scTransSumChange` | 总账户变动表查询（热库） |
+| `scTransSumChangeDetail` | 总账户变动明细（按交易号+商户号） |
+| `sumMonthWithDrawDetail` | 提现月度汇总查询 |
+
+---
+
+## 完整 LiteFlow 链路清单
+
+> 基于 consume.el.xml / check.el.xml 当前配置
+
+### 业务处理链（Trans）
+
+| 链名 | 说明 |
+|------|------|
+| chainConsume | 消费交易 |
+| chainConsumeAuth | 消费授权（需鉴权） |
+| chainConsumePre | 预消费 |
+| chainConsumePreFinish | 预消费完成 |
+| chainConsumeClose | 消费关闭（预消费解冻） |
+| chainConsumeCal | 消费算价 |
+| chainConsumeCalOrder | 订单级消费算价 |
+| chainRecharge | 充值 |
+| chainRefundRecharge | 充值退款 |
+| chainWithDraw | 提现 |
+| chainTransfer | 转账（API） |
+| chainTransferInner | 内部转账 |
+| chainTransferInnerPre | 内部转账预处理 |
+| chainTransferTiPre | TI转账预处理 |
+| chainTransferAuth | 授权转账 |
+| chainTransferReSendVerification | 转账重发验证码 |
+| chainConsumeRefund | 消费退款 |
+| chainFrozen | 冻结 |
+| chainUnFrozen | 解冻 |
+
+### 查询链（Query）
+
+| 链名 | 说明 |
+|------|------|
+| chainWithdrawResultQuery | 提现结果查询 |
+| chainRechargeResultQuery | 充值结果查询 |
+| chainFrozenDetailQuery | 冻结明细查询 |
+| chainConsumeResultQuery | 消费结果查询 |
+| chainTransferResultQuery | 转账结果查询 |
+| chainWithDataStore | 数据存储 |

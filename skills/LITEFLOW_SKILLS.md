@@ -175,6 +175,45 @@ slot.clear();
 
 ---
 
+## 7. lsym 项目强制记忆加载规则
+
+- 凡是 `lsym` 开发项目任务，默认必须先加载 `lsym-memory-hub`（至少先读 `workflow/PROJECT_MEMORY.md` 和默认阅读顺序文档）。
+- 退款、转账、提现等账户变动问题，必须先从 `lsym-memory-hub/docs/ACCOUNT_CHANGE_SOURCE_MAP.md` 定位源码入口，再进入具体组件排查。
+
+---
+
+## 8. 消费退款链路排查要点（含 04转01 模式）
+
+### 路由分支
+
+- 统一入口：`chainConsumeRefund`
+- 分支判断：`consumeTransRefundSplitPercentPack / consumeTransRefundSplitOrderPack`
+- 普通04退款链路：`bashChainRefundModel04` → `ConsumeTransRefundAfter`
+- 04转01模式链路：`bashChainRefundModel01` → `ConsumeTransRefundModel1After`
+
+### 关键差异
+
+- `ConsumeTransRefundAfter`：
+  - 同时处理付款侧和收款侧（04 扣回 + 解冻）。
+  - 汇总明细包含付款与收款数据。
+- `ConsumeTransRefundModel1After`：
+  - 主要处理 01/02 侧（含 04转01充值生成的 01 变动）。
+  - `trans_acct_act_sum_change_detail_t` 由 `writeSummaryChanges` 中 `refundByActivity` 聚合生成。
+
+### `trans_acct_act_sum_change_detail_t` 重点口径
+
+- 关注字段：`org_amt`、`trans_amt`、`balance`、`org_real_amt`、`real_balance`、`activity_code`。
+- Model1 中 `org_amt` 来源：`collectInitialActivityTotals` 通过 `sumAvailableAmtByActivityCodesIn` 预采集。
+- 排查时必须区分两类 `subAccountExpendTMap` 数据：
+  - 普通退款恢复（`isRechargeFrom04 != true`）
+  - 04转01转充值（`isRechargeFrom04 == true`）
+- 常见风险点：
+  1. 将余额口径与本金口径混用（`org_amt` 与 `org_real_amt` 一刀切）。
+  2. 同一卡同子账户下，`sample` 取值与聚合口径不一致，导致汇总记录属性串位。
+  3. 04转01转充值记录与普通退款恢复记录混合聚合时，活动科目期初被覆盖或放大。
+
+---
+
 ## Skills 文件位置
 
 | Skill名称 | 源文件位置 |
