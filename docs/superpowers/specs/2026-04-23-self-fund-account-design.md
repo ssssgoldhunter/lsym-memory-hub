@@ -1,7 +1,7 @@
 # 自有资金账户（Self-Owned Fund Account）设计方案
 
 > 日期：2026-04-23
-> 状态：设计中
+> 状态：设计完成，待实施
 
 ## 1. 背景与目标
 
@@ -409,3 +409,47 @@ slot.getTransType().equals(CommonConstants.TRANS_TYPE_IC)
 2. `RechargeTrans.isAccess()` 加 `"03"` 到允许列表
 3. `RechargeTransAfter.isAccess()` 加 `"03"` 到允许列表
 4. `RechargeTrans` 中 accountType=04 路径，`bankEAccountId=null` 时跳过 `setBankEAccountCode`（不写 null 到交易记录）
+
+---
+
+## 10. 最终结论
+
+### 设计方案确认
+
+自有资金账户本质是**平台账户下通过 `registerAttr` 区分的特殊子账户**，不分配独立银行账号，共享平台银行连接参数。系统通过 `bas_param_t` 配置映射关系，业务层以"平台账户转账"抽象，银行差异收敛在 Front Handle 实现层。
+
+### 改动范围总览
+
+| 层级 | 改动类型 | 关键改动 |
+|------|---------|---------|
+| **base** | 新增 | company虚拟账户 + 04子账户 + 2个bas_param_t配置 |
+| **front** | 新增 | 3个Handle方法（platformPay/platformReceive/queryRegisterTransPages）+ Zx实现 + DTO扩展 |
+| **web** | 改造 | ReverseNoticeController支持trans_tp=03，跳过校验读配置充值 |
+| **consume** | **必须改造** | RechargeTrans/RechargeTransAfter isAccess()加"03" + bankEAccountId null处理 + Pack组件03分支 |
+| **task** | 新增 | 2个自有资金补偿Job（扫描当日数据+逐条判断补偿） |
+| **common** | 新增 | CommonConstants新增TRANS_TYPE_SELF_FUND="03" |
+
+### 风险点
+
+| 风险 | 等级 | 应对 |
+|------|------|------|
+| chainRecharge isAccess()阻断"03" | **高** | 必须改，否则充值静默失败 |
+| bankEAccountId=null写入交易记录 | **中** | RechargeTrans中null时跳过set |
+| 现有ZX充值Job扫到03记录 | **低** | 过滤条件排除transType=03 |
+
+### 实施顺序
+
+```
+1. base（数据准备）
+2. front（银行接口抽象 + Zx实现）
+3. common（常量定义）
+4. consume（isAccess()改造 + Pack组件03分支）  ← 关键，必须先验证
+5. web（通知入口支持03）
+6. task（新建补偿Job）
+```
+
+### 不在本期范围
+
+- 调账流程（待确认业务场景）
+- 转账（2041/2042）LiteFlow集成（front接口先行，业务流程后续）
+- PA银行自有资金支持
