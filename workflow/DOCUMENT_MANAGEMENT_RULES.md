@@ -1,6 +1,6 @@
 # 工作偏好：文档和记忆体管理规则
 
-> **重要规则**: 除非用户直接要求，所有 md 文档和记忆体内容都应存放在 lsym-memory 记忆体项目中
+> **重要规则**: 除非用户直接要求，所有 md 文档和记忆体内容都应存放在 lsym-memory-hub 记忆体项目中
 
 ## 📋 核心规则
 
@@ -8,12 +8,12 @@
 
 | 类型 | 存储位置 | 说明 |
 |------|----------|------|
-| **md 文档** | `lsym-memory/` | 所有 Markdown 文档都放在记忆体项目 |
-| **记忆体内容** | `lsym-memory/` | AI 助手的学习内容、项目知识等 |
-| **项目文档** | `lsym-memory/docs/` | 项目的核心设计文档 |
-| **快速参考** | `lsym-memory/business-flows/` | 业务流程快速参考 |
-| **技术文档** | `lsym-memory/architecture/` | 架构设计文档 |
-| **工作流程** | `lsym-memory/workflow/` | 工作流程和偏好设置 |
+| **md 文档** | `lsym-memory-hub/` | 所有 Markdown 文档都放在记忆体项目 |
+| **记忆体内容** | `lsym-memory-hub/` | AI 助手的学习内容、项目知识等 |
+| **项目文档** | `lsym-memory-hub/docs/` | 项目的核心设计文档 |
+| **快速参考** | `lsym-memory-hub/business-flows/` | 业务流程快速参考 |
+| **技术文档** | `lsym-memory-hub/architecture/` | 架构设计文档 |
+| **工作流程** | `lsym-memory-hub/workflow/` | 工作流程和偏好设置 |
 
 ### 不放在记忆体的内容
 
@@ -29,12 +29,12 @@
 ### 多台电脑协作
 
 1. **电脑 A** 工作
-   - 拉取最新的 lsym-memory 仓库
+   - 拉取最新的 lsym-memory-hub 仓库
    - 查看记忆体中的项目信息
    - 继续工作
 
 2. **电脑 B** 工作
-   - 拉取最新的 lsym-memory 仓库
+   - 拉取最新的 lsym-memory-hub 仓库
    - 获取电脑 A 更新的记忆体内容
    - 继续工作
 
@@ -62,11 +62,11 @@ AI 助手会在以下情况更新记忆体：
 
 ### 保存文档到记忆体
 
-```bash
-cd /Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory
+```powershell
+cd D:\workspaces\IdeaProjects_lsym_dep\lsym-memory-hub
 
-# 编辑或添加文档
-vim docs/NEW_DOCUMENT.md
+# 编辑或添加文档后提交
+git status --short
 
 # 提交到 Git
 git add .
@@ -76,20 +76,20 @@ git push
 
 ### 从记忆体获取信息
 
-```bash
-cd /Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory
+```powershell
+cd D:\workspaces\IdeaProjects_lsym_dep\lsym-memory-hub
 
 # 拉取最新内容
 git pull
 
 # 查看文档
-cat docs/TRANSACTION_QUICK_REFERENCE.md
+Get-Content docs/TRANSACTION_QUICK_REFERENCE.md -Encoding UTF8
 ```
 
 ## 📂 记忆体目录结构
 
 ```
-lsym-memory/
+lsym-memory-hub/
 ├── docs/                    # 所有设计文档和参考文档
 │   ├── SUPPLY_CHAIN_DESIGN_V5.5.md
 │   ├── TRANSACTION_QUICK_REFERENCE.md
@@ -114,7 +114,7 @@ lsym-memory/
 ## 🔄 与项目的关系
 
 ```
-slhy/                          lsym-memory/
+slhy/                          lsym-memory-hub/
 ├── fund-catering/            ├── docs/           (从slhy迁移的文档)
 │   ├── fund-catering-        ├── architecture/    (技术架构)
 │   ├── fund-catering-front/   ├── business-flows/  (业务流程)

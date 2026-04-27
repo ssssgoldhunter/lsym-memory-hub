@@ -4,15 +4,16 @@
 
 ## 1. 项目定位
 
-- 主代码仓：`/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy`
-- 记忆/文档仓：`/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory-hub`
+- 主代码仓：`D:\workspaces\IdeaProjects_lsym_dep\slhy`
+- 记忆/文档仓：`D:\workspaces\IdeaProjects_lsym_dep\lsym-memory-hub`
 - 业务领域：`lsym` 餐饮资金体系
 - 主工作范围：`slhy/fund-catering`
+- 当前 fund-catering 主扫描范围排除：`fund-catering-data-batch`
 - 强制规则：凡是 `lsym` 开发项目任务，默认必须先加载 `lsym-memory-hub`（至少先读本文件与默认阅读顺序文档），再进行代码排查与实现
 
 ## 2. 技术主线
 
-- 语言和框架：`Java 17`、`Spring Boot 2.x`
+- 语言和框架：`Java 17`、`Spring Boot 3.2.4`
 - 流程编排：`LiteFlow`
 - 数据访问：`MyBatis Plus`
 - 基础设施：`Redis`、`Nacos`
@@ -51,11 +52,12 @@
 - `fund-catering-base`：账户、商户、平台、基础能力
 - `fund-catering-consume`：交易主流程、LiteFlow 组件
 - `fund-catering-task`：定时任务、提现后处理、撤销、上账
-- `fund-catering-data-batch`：批处理
 - `fund-catering-front`：前置路由和外部通道
 - `fund-catering-management`：后台管理
 - `fund-catering-report`：报表
 - `fund-catering-web`：Web API 聚合出口
+
+`fund-catering-data-batch` 有独立文档，但不纳入当前 fund-catering 主结构扫描范围。
 
 ## 7. 并发和一致性重点
 

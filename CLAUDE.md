@@ -10,8 +10,8 @@
 |------|------|
 | **项目名称** | lsym / slhy (餐饮资金体系) |
 | **负责人** | 李蒙 (ssssgoldhunter) |
-| **主项目路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy` |
-| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory-hub` |
+| **主项目路径** | `D:\workspaces\IdeaProjects_lsym_dep\slhy` |
+| **记忆库路径** | `D:\workspaces\IdeaProjects_lsym_dep\lsym-memory-hub` |
 | **GitHub 仓库** | https://github.com/ssssgoldhunter/lsym-memory-hub |
 | **飞书文档** | https://jvn4jogcy6u.feishu.cn |
 | **当前活跃分支** | `lsym_20260116_limeng_restruct` |
@@ -46,7 +46,7 @@
 
 ```
 slhy/
-├── fund-catering/          # 原单体模块（8个子模块）
+├── fund-catering/          # 原单体模块（主扫描范围 7 个子模块，不含 data-batch）
 ├── auth-service/           # 认证授权中心
 ├── gateway-service/        # API网关
 ├── system-service/         # 主Web服务（整合fund-catering API + 管理功能）
@@ -65,7 +65,7 @@ slhy/
 └── ui-modules/             # 前端模块（7个）
 ```
 
-### fund-catering 子模块（原单体）
+### fund-catering 子模块（原单体，当前主扫描范围）
 
 | 模块 | 说明 |
 |------|------|
@@ -75,8 +75,9 @@ slhy/
 | fund-catering-task | 定时任务（提现/充值/转账/对账） |
 | fund-catering-web | Web接口层 |
 | fund-catering-management | 管理后台 |
-| fund-catering-data-batch | 数据批处理 |
 | fund-catering-report | 报表服务 |
+
+说明：`fund-catering-data-batch` 保留独立模块文档，但不纳入当前 fund-catering 主结构扫描和整理范围。
 
 ### 新微服务（详见 [MODULE_MICROSERVICES.md](modules/MODULE_MICROSERVICES.md)）
 
@@ -128,7 +129,6 @@ slhy/
 | 前置服务 | 前置服务模块 | `modules/MODULE_FRONT.md` | PA/ZX平台对接（214文件） |
 | 管理服务 | 管理服务模块 | `modules/MODULE_MANAGEMENT.md` | 商户、配置、结算管理（167文件） |
 | 任务调度 | 任务调度模块 | `modules/MODULE_TASK.md` | XXL-Job定时任务（217文件） |
-| 数据批处理 | 数据批处理模块 | `modules/MODULE_DATA_BATCH.md` | 批量数据处理（100+文件） |
 | 报表服务 | 报表模块 | `modules/MODULE_REPORT.md` | 报表生成和查询（50+文件） |
 | 清结算主模块 | fund-catering模块 | `modules/MODULE_FUND_CATERING.md` | 完整模块结构与账户变动 |
 | 校验组件 | Check组件 | `modules/CHECK_COMPONENTS.md` | Check组件详解 |
