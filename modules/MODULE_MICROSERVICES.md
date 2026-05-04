@@ -1,7 +1,7 @@
 # 微服务架构模块文档
 
 > 记录从 fund-catering 单体拆分出的新微服务模块
-> **更新日期**: 2026-04-18
+> **更新日期**: 2026-05-04
 
 ---
 
@@ -61,7 +61,7 @@
 | 组件 | 说明 |
 |------|------|
 | ReconcileResultController | 对账结果管理 |
-| BaseAccountFacadeController | 基础账户门面（61+方法） |
+| BaseAccountFacadeController | 基础账户门面 |
 | TransAccountController | 交易账户管理 |
 
 ### 4. db-service（数据库服务）
@@ -166,9 +166,7 @@
 | SecurityContextHolder | 安全上下文 |
 | CommonCoreConfiguration | 核心配置 |
 
-### starter-modules
-
-Spring Boot Starter 组件：
+### starter-modules（11个）
 
 | Starter | 说明 |
 |---------|------|
@@ -177,16 +175,23 @@ Spring Boot Starter 组件：
 | starter-redis | Redis集成 |
 | starter-rocketMq | RocketMQ集成 |
 | starter-biz | 业务通用组件 |
+| starter-mybatisplus | MyBatis Plus集成 |
+| starter-datascope | 数据权限 |
+| starter-log | 日志处理 |
+| starter-sensitive | 敏感数据处理 |
+| starter-shardingjdbc | 分库分表 |
+| starter-xxljob | XXL-JOB集成 |
 
-### api-modules
+### api-modules（4个）
 
 | 模块 | 说明 |
 |------|------|
 | api-db | 数据库相关API定义 |
 | api-routing | 路由相关API定义 |
 | api-system | 系统相关API定义 |
+| api-reconcile | 对账相关API定义 |
 
-### ui-modules
+### ui-modules（7个）
 
 | 模块 | 说明 |
 |------|------|

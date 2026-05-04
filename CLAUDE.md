@@ -4,22 +4,23 @@
 
 ---
 
-## 📋 项目基本信息
+## 项目基本信息
 
 | 属性 | 值 |
 |------|------|
 | **项目名称** | lsym / slhy (餐饮资金体系) |
 | **负责人** | 李蒙 (ssssgoldhunter) |
-| **主项目路径** | `D:\workspaces\IdeaProjects_lsym_dep\slhy` |
-| **记忆库路径** | `D:\workspaces\IdeaProjects_lsym_dep\lsym-memory-hub` |
+| **主项目路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy` |
+| **记忆库路径** | `/Users/limeng/workspaces/IdeaProjects_lsym_dep/lsym-memory-hub` |
 | **GitHub 仓库** | https://github.com/ssssgoldhunter/lsym-memory-hub |
 | **飞书文档** | https://jvn4jogcy6u.feishu.cn |
-| **当前活跃分支** | `lsym_20260116_limeng_restruct` |
+| **当前活跃分支** | `lsym_prod` |
 | **生产分支** | `lsym_prod` |
+| **冷冻分支** | `lsym_20260116_limeng_restruct`（2026-05 冻结） |
 
 ---
 
-## 🔧 技术栈
+## 技术栈
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
@@ -40,7 +41,7 @@
 
 ---
 
-## 🏗️ 项目架构
+## 项目架构
 
 ### 整体架构：单体 + 微服务混合（转型中）
 
@@ -60,8 +61,8 @@ slhy/
 ├── portal-service/         # Portal门户
 ├── migration-service/      # 数据迁移（pom.xml中已注释，暂未启用）
 ├── common-core/            # 公共核心组件
-├── starter-modules/        # Spring Boot Starter组件
-├── api-modules/            # API定义（api-db/api-routing/api-system）
+├── starter-modules/        # Spring Boot Starter组件（11个）
+├── api-modules/            # API定义（api-db/api-routing/api-system/api-reconcile）
 └── ui-modules/             # 前端模块（7个）
 ```
 
@@ -100,37 +101,37 @@ slhy/
 | 模块 | 说明 |
 |------|------|
 | common-core | 公共组件（BaseController/AjaxResult/PageDomain等） |
-| starter-modules | Spring Boot Starter（nacos/security/redis/rocketMq/biz等） |
-| api-modules | API定义（api-db/api-routing/api-system） |
+| starter-modules | Spring Boot Starter（nacos/security/redis/rocketMq/biz/mybatisplus/datascope/log/sensitive/shardingjdbc/xxljob） |
+| api-modules | API定义（api-db/api-routing/api-system/api-reconcile） |
 | ui-modules | 前端（cashier/mgr-ui/mgr-ui-v2/dashboard/front/front-pc/front-pc-v3） |
 
 ---
 
-## 📚 核心文档索引
+## 核心文档索引
 
 ### 必读文档（按优先级）
 
 | 优先级 | 文档 | 路径 | 说明 |
 |--------|------|------|------|
-| ⭐⭐⭐ | 快速参考 | `docs/TRANSACTION_QUICK_REFERENCE.md` | 六大交易+预消费+冻结流程快速查询 |
-| ⭐⭐⭐ | 完整设计文档 | `docs/SUPPLY_CHAIN_DESIGN_V5.5.md` | 最权威的设计文档 |
-| ⭐⭐ | 账户变动源码映射 | `docs/ACCOUNT_CHANGE_SOURCE_MAP.md` | 交易场景→源码→账户变动入口映射 |
-| ⭐⭐ | 框架结构 | `architecture/FRAMEWORK_STRUCTURE.md` | TransSlot/QuerySlot 详解 |
-| ⭐⭐ | 组件结构 | `architecture/TRANS_COMPONENT_STRUCTURE.md` | Trans 组件结构详解 |
-| ⭐ | 框架蓝图 | `architecture/FRAMEWORK_BLUEPRINT.md` | 新项目参考 |
-| ⭐ | 文档管理规则 | `workflow/DOCUMENT_MANAGEMENT_RULES.md` | 文档存储规范 |
+| 1 | 快速参考 | `docs/TRANSACTION_QUICK_REFERENCE.md` | 六大交易+预消费+冻结流程快速查询 |
+| 1 | 完整设计文档 | `docs/SUPPLY_CHAIN_DESIGN_V5.5.md` | 最权威的设计文档 |
+| 2 | 账户变动源码映射 | `docs/ACCOUNT_CHANGE_SOURCE_MAP.md` | 交易场景→源码→账户变动入口映射 |
+| 2 | 框架结构 | `architecture/FRAMEWORK_STRUCTURE.md` | TransSlot/QuerySlot 详解 |
+| 2 | 组件结构 | `architecture/TRANS_COMPONENT_STRUCTURE.md` | Trans 组件结构详解 |
+| 3 | 框架蓝图 | `architecture/FRAMEWORK_BLUEPRINT.md` | 新项目参考 |
+| 3 | 文档管理规则 | `workflow/DOCUMENT_MANAGEMENT_RULES.md` | 文档存储规范 |
 
 ### 模块文档
 
 | 模块 | 文档 | 路径 | 说明 |
 |------|------|------|------|
+| 主结构 | fund-catering模块 | `modules/MODULE_FUND_CATERING.md` | 完整模块结构与账户变动 |
 | 微服务 | 微服务架构 | `modules/MODULE_MICROSERVICES.md` | 12+新微服务模块文档 |
-| 基础服务 | 基础服务模块 | `modules/MODULE_BASE.md` | 账户/商户/平台对接（399文件） |
-| 前置服务 | 前置服务模块 | `modules/MODULE_FRONT.md` | PA/ZX平台对接（214文件） |
-| 管理服务 | 管理服务模块 | `modules/MODULE_MANAGEMENT.md` | 商户、配置、结算管理（167文件） |
-| 任务调度 | 任务调度模块 | `modules/MODULE_TASK.md` | XXL-Job定时任务（217文件） |
-| 报表服务 | 报表模块 | `modules/MODULE_REPORT.md` | 报表生成和查询（50+文件） |
-| 清结算主模块 | fund-catering模块 | `modules/MODULE_FUND_CATERING.md` | 完整模块结构与账户变动 |
+| 基础服务 | 基础服务模块 | `modules/MODULE_BASE.md` | 账户/商户/平台对接 |
+| 前置服务 | 前置服务模块 | `modules/MODULE_FRONT.md` | PA/ZX平台对接 |
+| 管理服务 | 管理服务模块 | `modules/MODULE_MANAGEMENT.md` | 商户，配置，结算管理 |
+| 任务调度 | 任务调度模块 | `modules/MODULE_TASK.md` | XXL-Job定时任务 |
+| 报表服务 | 报表模块 | `modules/MODULE_REPORT.md` | 报表生成和查询 |
 | 校验组件 | Check组件 | `modules/CHECK_COMPONENTS.md` | Check组件详解 |
 | API文档 | API接口文档 | `modules/API_REFERENCE.md` | 完整API接口清单 |
 | 数据库 | 数据库表结构 | `modules/DATABASE_SCHEMA.md` | 核心表结构说明 |
@@ -143,14 +144,13 @@ slhy/
 | MAC并发修复 | `technical-decisions/MAC_CONCURRENCY_FIX.md` | MAC刷新+CAS并发保护 |
 | 批量转账实现 | `technical-decisions/BATCH_TRANSFER_IMPLEMENTATION.md` | 批量上账业务 |
 | MAC CAS设计 | `docs/plans/2026-03-10-mac-cas-design.md` | CAS乐观锁方案 |
-| 账户变动重构设计 | `docs/superpowers/specs/2026-03-11-account-change-refactor-design.md` | 6张表迁移方案 |
-| 账户变动重构TODO | `docs/superpowers/specs/2026-03-12-account-change-refactor-todo.md` | 重构待办 |
-| task模块账户变动统一 | `docs/plans/2026-03-17-task-account-change-unification-plan.md` | task模块改造方案 |
-| NPK商户改进任务 | `docs/plans/2026-04-12-npk-mchnt-improvement-task.md` | npk_mchnt能力完善 |
+| 账户变动重构设计 | `docs/superpowers/specs/2026-03-11-account-change-refactor-design.md` | 6张表迁移方案（restruct冷冻） |
+| 账户变动重构TODO | `docs/superpowers/specs/2026-03-12-account-change-refactor-todo.md` | 重构待办（restruct冷冻） |
+| task模块账户变动统一 | `docs/plans/2026-03-17-task-account-change-unification-plan.md` | task模块改造方案（restruct冷冻） |
 
 ---
 
-## 🎯 核心交易流程（LiteFlow链）
+## 核心交易流程（LiteFlow链）
 
 | 流程 | 流程链 | 说明 |
 |------|--------|------|
@@ -181,7 +181,7 @@ slhy/
 
 ---
 
-## 🧠 LiteFlow 组件类型
+## LiteFlow 组件类型
 
 | 组件类型 | 命名规范 | 职责 |
 |----------|----------|------|
@@ -199,7 +199,7 @@ Pack → Check → Trans → After
 
 ---
 
-## 📁 核心源码路径
+## 核心源码路径
 
 | 类型 | 路径 |
 |------|------|
@@ -214,7 +214,7 @@ Pack → Check → Trans → After
 
 ---
 
-## 📝 工作规范
+## 工作规范
 
 ### AI 编码准则
 
@@ -255,7 +255,7 @@ Pack → Check → Trans → After
 - Bug 修复应先复现，再修复，再验证。
 - 重构要确认修改前后行为不变。
 - 多步骤任务需要给出简短计划，并说明每步如何验证。
-- 成功标准要清晰，避免只用“让它能工作”这类模糊目标。
+- 成功标准要清晰，避免只用"让它能工作"这类模糊目标。
 
 ### 文档存储规则
 
@@ -287,7 +287,7 @@ Pack → Check → Trans → After
 
 ---
 
-## 🔐 安全机制
+## 安全机制
 
 | 机制 | 说明 |
 |------|------|
@@ -297,25 +297,35 @@ Pack → Check → Trans → After
 
 ---
 
-## 🔥 近期开发重点（截至2026-04）
+## 当前开发重点（截至2026-05，以 lsym_prod 为主线）
 
-1. **账户变动原子一致性改造** — 六大交易全部使用原子一致性更新账户余额
-2. **AccountChangeBatchService** — 新增统一账户批量变动服务（按交易场景封装API）
-3. **交易回溯改造** — 交易回溯和转账回溯逻辑改造
-4. **CAS校验修复** — 修复转账回溯MAC值缺失导致CAS校验失败
-5. **冻结流水号唯一校验** — 新增冻结流水号唯一性校验
-6. **NPK商户模块** — 新增NPK商户/门店/业务项目管理（system-service）
-7. **消费退款汇总口径修正** — 修正汇总口径与交易类型
+1. **入账识别异常告警机制** — 入账解析异常时发送898未配告警，优化任务查询和告警内容拼接
+2. **提现结果查询接口优化** — 未查到记录时返回优化
+3. **授信合同功能** — 权限统一、下载优化、批量异常处理、导入增加备注字段
+4. **配置调整与优雅停机** — 优雅处理时间配置、bootstrap.properties 调整
+
+### 冷冻分支工作记录（lsym_20260116_limeng_restruct）
+
+以下重构工作已暂停，待后续恢复：
+
+1. 账户变动原子一致性改造 — 六大交易全部使用原子一致性更新账户余额
+2. AccountChangeBatchService 扩展 — 新增统一账户批量变动服务（672行新增）
+3. 六大交易 After 组件重写 — Consume/Refund/Recharge/Transfer/WithDraw After 全部重写
+4. 交易回溯 & 转账回溯改造 — TransRecallServiceImpl/TransferRecallServiceImpl 大幅扩展
+5. 冻结流水号唯一校验
+6. 消费退款汇总口径修正
+
+> restruct 分支共 98 文件变更（+8615/-4583），合并时需注意与 prod 独有功能（入账告警、授信合同等）的冲突。
 
 ---
 
-## 📋 待办事项（记忆体项目）
+## 待办事项
 
-### 账户变动模块重构（后期重构）
+### 账户变动模块重构（后期恢复）
 
 | 属性 | 值 |
 |------|-----|
-| **状态**: 待处理 |
+| **状态**: 冷冻（随 restruct 分支暂停） |
 | **创建日期**: 2026-03-12 |
 | **优先级**: 中 |
 
@@ -329,7 +339,7 @@ Pack → Check → Trans → After
 
 ---
 
-## 🤖 AI 自定义指令
+## AI 自定义指令
 
 ### 任务结束流程
 
@@ -353,13 +363,13 @@ Pack → Check → Trans → After
 
 | 场景 | 是否更新日志 |
 |------|-------------|
-| 完成一个功能开发 | ✅ 建议 |
-| 修复一个 Bug | ✅ 建议 |
-| 文档整理/优化 | ✅ 建议 |
-| 简单代码查看 | ❌ 可选 |
-| 快速问题咨询 | ❌ 可选 |
+| 完成一个功能开发 | 建议 |
+| 修复一个 Bug | 建议 |
+| 文档整理/优化 | 建议 |
+| 简单代码查看 | 可选 |
+| 快速问题咨询 | 可选 |
 
 ---
 
-**更新日期**: 2026-04-18
+**更新日期**: 2026-05-04
 **维护者**: ssssgoldhunter
