@@ -28,9 +28,9 @@
 | Spring Boot | **3.2.4** | 应用框架 |
 | Spring Cloud | **2023.0.1** | 微服务治理 |
 | Spring Alibaba | **2023.0.1.0** | 云原生特性 |
-| LiteFlow | 最新版 | 流程编排引擎（核心） |
-| MyBatis Plus | 最新版 | ORM 框架 |
-| ShardingSphere | 5.3.2 | 分库分表 |
+| LiteFlow | **2.12.4.1** | 流程编排引擎（核心，仅fund-catering） |
+| MyBatis Plus | **3.5.5** | ORM 框架 |
+| ShardingSphere | **5.5.0** | 分库分表 |
 | Redis | - | 分布式锁、缓存 |
 | RocketMQ | - | 消息队列 |
 | Nacos | - | 配置中心、服务注册发现 |
@@ -52,7 +52,7 @@ slhy/
 ├── gateway-service/        # API网关
 ├── system-service/         # 主Web服务（整合fund-catering API + 管理功能）
 ├── db-service/             # 数据库服务（ShardingSphere分库分表）
-├── routing-service/        # 支付路由（8个子模块：alipay/wxpay/unionpay/umspay等）
+├── routing-service/        # 支付路由（9个子模块：alipay/wxpay/unionpay/umspay/umsbank/acct/signpay/portal/common）
 ├── reconcile-service/      # 对账服务
 ├── notify-service/         # 通知服务（邮件+XMPP+RocketMQ）
 ├── file-service/           # 文件存储（阿里云OSS）
@@ -88,13 +88,13 @@ slhy/
 | gateway-service | API网关 | Spring Cloud Gateway |
 | system-service | 主Web服务入口 | MapStruct + EasyExcel + 美团SDK |
 | db-service | 分库分表服务 | ShardingSphere |
-| routing-service | 支付路由 | 8个支付渠道模块 |
+| routing-service | 支付路由 | 9个子模块（含common/portal/acct） |
 | reconcile-service | 对账服务 | FTP/SFTP + 动态数据源 |
 | notify-service | 通知服务 | Jakarta Mail + Smack + RocketMQ |
 | file-service | 文件存储 | 阿里云OSS |
 | portal-service | 门户服务 | Portal Web |
 | gen-service | 代码生成 | Velocity |
-| job-service | 定时任务 | Quartz + XXL-JOB |
+| job-service | 定时任务 | XXL-JOB 3.1.0 |
 
 ### 基础设施模块
 
@@ -204,7 +204,7 @@ Pack → Check → Trans → After
 | 类型 | 路径 |
 |------|------|
 | 消费服务 | `slhy/fund-catering/fund-catering-consume` |
-| LiteFlow 配置 | `fund-catering-consume/fund-catering-consume-service/src/main/resources/liteflow/` |
+| LiteFlow 配置 | `fund-catering-consume/.../liteflow/` + `fund-catering-data-batch/.../liteflow/` |
 | Trans 组件 | `flow/component/trans/` |
 | Query 组件 | `flow/component/query/` |
 | 账户变动批量服务 | `fund-catering-base/.../service/AccountChangeBatchService.java` |
@@ -371,5 +371,5 @@ Pack → Check → Trans → After
 
 ---
 
-**更新日期**: 2026-05-04
+**更新日期**: 2026-05-06
 **维护者**: ssssgoldhunter

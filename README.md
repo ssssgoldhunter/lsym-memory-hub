@@ -103,6 +103,7 @@ lsym-memory-hub/
 
 | 日期 | 更新内容 |
 |------|----------|
+| 2026-05-06 | 版本号对齐源码：ShardingSphere 5.5.0、LiteFlow 2.12.4.1、MyBatis Plus 3.5.5、routing-service 9子模块 |
 | 2026-05-04 | 以 lsym_prod 为主线对齐全部文档：路径修正(Mac)、分支状态、开发重点 |
 | 2026-04-27 | 根据当前源码重整 fund-catering 主结构文档，主扫描范围排除 data-batch |
 | 2026-03-06 | 模块文档补充：新增 9 个模块文档 |
