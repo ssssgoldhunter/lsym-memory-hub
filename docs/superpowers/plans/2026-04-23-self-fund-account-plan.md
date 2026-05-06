@@ -1,7 +1,7 @@
 # 自有资金账户（Self-Owned Fund Account）实施计划
 
 > 日期：2026-04-24
-> 状态：已按 v2 业务调整更新
+> 状态：**已实现**（2026-05-06 源码验证确认）
 > 对应设计：`docs/superpowers/specs/2026-04-23-self-fund-account-design.md`
 
 ## 1. 当前结论
@@ -85,8 +85,8 @@ rechargeTransPack
 - 自有资金调账业务场景仍待确认。
 - 2041/2042 平台付款/平台收款的业务触发时机仍待确认。
 - 转账 LiteFlow 集成本期不做，当前只保留 Front 银行接口能力。
-- PA 银行自有资金支持时间待确认。
-- 自有资金账户变动明细策略如需单独口径，需要另行确认；当前入金复用普通充值账户变动明细。
+- PA 银行自有资金支持时间待确认（PaTransTransferHandle 未实现 platformPay/platformReceive）。
+- [x] 自有资金账户变动明细策略 — 入金复用普通充值账户变动明细。
 
 ## 5. 验收检查
 

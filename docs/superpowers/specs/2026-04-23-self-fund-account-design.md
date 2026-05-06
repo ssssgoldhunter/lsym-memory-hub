@@ -1,7 +1,7 @@
 # 自有资金账户（Self-Owned Fund Account）设计方案
 
 > 日期：2026-04-24（v2 业务调整）
-> 状态：设计已更新
+> 状态：**已实现**（入金充值 + Front 转账抽象 + data-batch 清分已完成）
 
 ## 1. 背景与目标
 
@@ -160,11 +160,13 @@ ZxTransNotifyRechargeJob（现有Job）
 
 ## 6. 实施顺序
 
-| 阶段 | 模块 | 内容 |
-|------|------|------|
-| 1 | base | 脚本初始化 company + 04 账户 + SELF_FUND_ACCOUNT_CONFIG 配置 |
-| 2 | front | Handle 接口抽象 + Zx 实现（platformPay/platformReceive）+ DTO 扩展 |
-| 3 | common | CommonConstants 新增 TRANS_TYPE_SELF_FUND="03"（保留用于标识） |
+| 阶段 | 模块 | 内容 | 状态 |
+|------|------|------|------|
+| 1 | base | 脚本初始化 company + 04 账户 + SELF_FUND_ACCOUNT_CONFIG 配置 | ✅ 已完成 |
+| 2 | front | Handle 接口抽象 + Zx 实现（platformPay/platformReceive）+ DTO 扩展 | ✅ 已完成 |
+| 3 | common | CommonConstants 新增 TRANS_TYPE_SELF_FUND="03"（保留用于标识） | ✅ 已完成 |
+| 4 | web | ReverseNoticeController 支持 03 类型通知入金 | ✅ 已完成 |
+| 5 | data-batch | SelfOwnFundController 自有资金同步/清分 | ✅ 已完成 |
 
 ---
 
@@ -172,8 +174,8 @@ ZxTransNotifyRechargeJob（现有Job）
 
 - [ ] 自有资金账户调账的具体业务场景和流程细节
 - [ ] 转账（2041/2042）的业务触发时机（手工/自动）
-- [ ] PA 银行自有资金支持时间节点
-- [ ] 自有资金账户的账户变动明细记录策略（是否复用 AccountEntryAfterService）
+- [ ] PA 银行自有资金支持时间节点（PA 渠道 platformPay/platformReceive 未实现，返回 null）
+- [x] 自有资金账户的账户变动明细记录策略 — 复用普通充值账户变动明细
 
 ---
 
@@ -214,4 +216,25 @@ ZxTransNotifyRechargeJob（现有Job）
 
 - 调账流程（待确认业务场景）
 - 转账（2041/2042）LiteFlow集成（front接口先行，业务流程后续）
-- PA银行自有资金支持
+- PA银行自有资金支持（PaTransTransferHandle.platformPay/platformReceive 未实现）
+
+---
+
+## 10. 源码实现索引（2026-05-06 补充）
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| common-core | `CommonConstants.TRANS_TYPE_SELF_FUND = "03"` | 自有资金入金类型常量 |
+| common-core | `CommonConstants.TI_ZYKQ_REMAKER` | 自有资金备注参数 |
+| front-service | `BasTransTransferHandle.platformPay/platformReceive` | 接口定义 |
+| front-service | `AbstractTransTransferHandle` | 抽象基类（默认null） |
+| front-service | `ZxTransTransferHandle.platformPay()` | Zx平台付款实现 |
+| front-service | `ZxTransTransferHandle.platformReceive()` | Zx平台收款实现 |
+| front-service | `PaTransTransferHandle` | PA渠道未实现（继承默认null） |
+| front-service | `SaasZxInterService.zxPlatformPay/zxPlatformReceive` | Zx底层银行接口调用 |
+| front-api | `SaasZxApi.PlatformPay/PlatformReceive = "transfer"` | API路径常量 |
+| front-api | `BasTransTransferReq.bizFunc/fundType/dealType/bankEAccountId` | 转账DTO扩展字段 |
+| front-common | `ZxTransferRequest.pSelfFlag/pSelfAmt` | 自有资金交易类型/金额 |
+| web | `ReverseNoticeController.transNotifyZx()` | 支持03类型通知入金 |
+| data-batch | `SelfOwnFundController/SelfOwnFundServiceImpl` | 自有资金同步/清分 |
+| management | `NpkStoreService` | 门店自有资金协议查询 |
