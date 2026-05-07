@@ -180,10 +180,32 @@ TransferTransPack → 业务校验 → TransferTransAuth
 - 支持按比例退款和按单退款
 
 ### 退款方式对比
-| 退款方式 | 适用场景 | 退款规则 |
-|----------|----------|----------|
-| **按比例退款** | 统一退款 | 按原消费各账户扣款比例退款 |
-| **按单退款** | 多订单部分退款 | 按子订单金额退款 |
+| 退款方式 | 组件名 | 分摊深度 | 流水层分配 | 说明 |
+|----------|--------|----------|-----------|------|
+| **比例退款** | SplitPercentPack | 三层 | 比例计算+补充分配合并 | 按原消费各账户/科目/流水比例退款 |
+| **订单退款** | SplitOrderPack | 三层 | 贪心逐笔分配 | 按子订单金额退款，流水层逐笔扣减 |
+
+### 退款分摊结构（三层）
+
+```
+退款请求金额 (receiveAmount)
+│
+├─ 第一层：账户类型层分摊
+│   ├─ 排序：从 Slot 读取 consumeSubAccountSort，倒序
+│   ├─ 前N个按比例：refundTotalAmt × accountConsumeAmt / totalConsumeAmt (HALF_UP)
+│   ├─ 最后一个兜底剩余金额
+│   └─ 兜底补充分配：剩余金额向有容量的账户类型补分配
+│
+├─ 第二层：科目层分摊 (01/02，04跳过)
+│   ├─ 排序：按 activityTypeSort 倒序
+│   ├─ 前面科目按比例：accountRefundAmt × activityOrgAmt / totalOrgConsumeAmt (HALF_UP)
+│   ├─ 最后一个科目兜底剩余金额
+│   └─ 兜底补充分配：剩余金额向有容量的科目补分配
+│
+└─ 第三层：流水层分摊 (01/02按科目，04直接贪心)
+    ├─ 比例退款(SplitPercentPack)：按比例+HALF_UP，补充分配+同consumeSubId合并
+    └─ 订单退款(SplitOrderPack)：贪心逐笔 min(leftCancelAmount, recordRefundable)
+```
 
 ### 业务规则
 - **退款期限**: 原消费后30天内
@@ -193,22 +215,30 @@ TransferTransPack → 业务校验 → TransferTransAuth
 ### 退款数据流转示例
 ```
 原消费: 100元 (01:70元, 02:25元, 04:5元)
-全额退款100元:
-├── 01账户: +70元
+
+全额退款100元 (isLastRefundFlag=true):
+├── 01账户: +70元 (直接退全部可退余额)
 ├── 02账户: +25元 (退回膨胀金)
 └── 04账户: +5元
 
-部分退款50元(50%):
-├── 01账户: +35元
-├── 02账户: +12.5元
-└── 04账户: +2.5元
+部分退款50元 (比例退款):
+├── 第一层(账户类型): 01→35, 02→12, 04→3 (比例+兜底)
+├── 第二层(科目): 按科目比例分配到各科目 + 兜底补充分配
+└── 第三层(流水): 按流水比例分配 + 补充分配+同consumeSubId合并
+
+部分退款50元 (订单退款):
+├── 第一层(账户类型): 01→35, 02→12, 04→3 (比例+兜底)
+├── 第二层(科目): 按科目比例分配到各科目 + 兜底补充分配
+└── 第三层(流水): 逐笔贪心分配 min(left, recordRefundable)
 ```
 
 ### 核心组件
 ```
 consumeTransRefundPack → 业务校验 → 查询原消费
 → consumeTransRefundSplitSwitch (拆分方式路由)
-→ 按比例/按单拆分 → bashChainRefundModelSwitch (退款模型)
+→ ├─ SplitPercentPack: 账户类型层(比例) → 科目层(比例) → 流水层(比例+补充分配+合并)
+→ └─ SplitOrderPack:   账户类型层(比例) → 科目层(比例) → 流水层(贪心逐笔)
+→ bashChainRefundModelSwitch (退款模型)
 → RefundRecharge04/01 → consumeTransRefundAfter
 ```
 
@@ -259,5 +289,5 @@ consumeTransRefundPack → 业务校验 → 查询原消费
 
 ---
 
-**更新时间**: 2026-04-18
+**更新时间**: 2026-05-07
 **项目**: lsym-memory
