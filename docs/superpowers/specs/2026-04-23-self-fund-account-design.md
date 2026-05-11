@@ -1,4 +1,3 @@
-# 自有资金账户（Self-Owned Fund Account）设计方案
 
 > 日期：2026-04-24（v2 业务调整）
 > 状态：**已实现**（入金充值 + Front 转账抽象 + data-batch 清分已完成）
