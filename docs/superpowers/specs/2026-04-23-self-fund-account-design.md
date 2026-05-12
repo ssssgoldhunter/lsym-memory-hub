@@ -6,7 +6,7 @@
 
 中信银行为平台开立了"自有资金登记簿"（registerAttr=12），这是平台账户下的一个特殊子账户。自有资金账户绑定了银行卡，具有完整的 `bank_e_account_id` 和 `bank_e_account_code`，系统内会为该银行卡建立完整的账户结构。
 
-**目标**：支持自有资金账户的入金（充值）、内部调账、转账（平台付款/收款）全流程。
+**目标**：支持自有资金账户的入金（充值）和 data-batch 清分；Front 层保留银行渠道 `platformPay/platformReceive` 能力。当前 lsym 业务层暂无平台收付款业务闭环。
 
 ---
 
@@ -30,9 +30,9 @@
 
 登记簿转账操作在业务层**独立抽象为"平台账户转账"**，不绑定特定银行的区分机制。
 
-- 业务层只知道"平台账户转账"（方向、金额、目标账户），不关心底层实现
+- 如后续新增 lsym 平台收付款业务，业务层只知道"平台账户转账"（方向、金额、目标账户），不关心底层实现
 - 银行差异由 `bas_param_t` 配置参数 + Front Handle 实现层屏蔽
-- 新银行接入只需：新增配置 + 实现 Handle 接口，业务层零改动
+- 新银行接入只需：新增配置 + 实现 Handle 接口；是否接入业务层需等待平台收付款业务明确
 
 ---
 
@@ -59,7 +59,9 @@
 ```
 
 **用途**：
-- 转账（LiteFlow）：在消费流程中判断哪方是自有资金账户，使用对应方向参数
+- 当前仅作为 Front 银行渠道平台付款/收款能力的方向参数保留。
+- lsym 业务层暂无平台收付款业务闭环，不在 Consume LiteFlow 中读取该配置。
+- 如后续新增业务，再按方向使用：
   - 付款卡是自有资金 → 读取 `payBizFunc`/`payFundType`/`payDealType` → 调 `platformPay`
   - 收款卡是自有资金 → 读取 `recBizFunc`/`recFundType`/`recDealType` → 调 `platformReceive`
 
@@ -141,15 +143,15 @@ ZxTransNotifyRechargeJob（现有Job）
   → 更新状态 SUCCESS/FAIL
 ```
 
-### 5.3 转账流程（后续）
+### 5.3 Front 银行渠道能力（业务层暂无接入）
 
 ```
-平台付款（自有资金 → 用户）:
+平台付款（自有资金 → 用户，如后续新增业务再接入）:
   → platformPay(bizFunc=2041)
   → outAcctNo=自有资金 bankEAccountId
   → inAcctNo=用户 userId
 
-平台收款（用户 → 自有资金）:
+平台收款（用户 → 自有资金，如后续新增业务再接入）:
   → platformReceive(bizFunc=2042)
   → outAcctNo=用户 userId
   → inAcctNo=自有资金 bankEAccountId
@@ -172,7 +174,7 @@ ZxTransNotifyRechargeJob（现有Job）
 ## 7. 待确认项
 
 - [ ] 自有资金账户调账的具体业务场景和流程细节
-- [ ] 转账（2041/2042）的业务触发时机（手工/自动）
+- [ ] 是否新增 lsym 平台收付款业务；当前只有 Front 银行渠道能力
 - [ ] PA 银行自有资金支持时间节点（PA 渠道 platformPay/platformReceive 未实现，返回 null）
 - [x] 自有资金账户的账户变动明细记录策略 — 复用普通充值账户变动明细
 
@@ -204,8 +206,8 @@ ZxTransNotifyRechargeJob（现有Job）
 
 | 保留内容 | 原因 |
 |---------|------|
-| Front `platformPay`/`platformReceive` 抽象 | 转账场景仍需 |
-| `SELF_FUND_ACCOUNT_CONFIG` 配置（转账用途） | 转账时读取方向参数 |
+| Front `platformPay`/`platformReceive` 抽象 | 银行渠道能力保留 |
+| `SELF_FUND_ACCOUNT_CONFIG` 配置（渠道方向参数） | 如后续新增平台收付款业务，再由业务层读取方向参数 |
 | `TRANS_TYPE_SELF_FUND = "03"` 常量 | 保留标识，当前入金不使用 |
 | `BasTransTransferReq` 扩展字段 | 转账 DTO 需要 bizFunc/fundType/dealType/bankEAccountId |
 
@@ -214,7 +216,7 @@ ZxTransNotifyRechargeJob（现有Job）
 ## 9. 不在本期范围
 
 - 调账流程（待确认业务场景）
-- 转账（2041/2042）LiteFlow集成（front接口先行，业务流程后续）
+- 转账（2041/2042）LiteFlow 集成（当前 lsym 无平台收付款业务，不接入）
 - PA银行自有资金支持（PaTransTransferHandle.platformPay/platformReceive 未实现）
 
 ---

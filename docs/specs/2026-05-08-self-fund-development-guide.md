@@ -2,7 +2,7 @@
 
 > 用途：其他项目/渠道接入自有资金账户时参照本文档开发
 > 更新日期：2026-05-08
-> 状态：入金已完成，转账（front 后续集成）待开发
+> 状态：入金已完成；`front` 仅保留银行渠道 `platformPay/platformReceive` 能力，lsym 业务层暂无平台收付款业务闭环
 
 ---
 
@@ -16,8 +16,8 @@
 |------|------|------|
 | **入金（充值）** | 银行推送 `trans_tp=03` 通知，通过银行卡反查内部账号充值到 04 子账户 | ✅ 已完成 |
 | **补偿查询** | 补偿查询结果格式与普通充值一致，复用现有 Job | ✅ 已完成 |
-| **转账（平台付款）** | 自有资金 → 用户登记簿（bizFunc=2041） | Front 已实现，Consume 待集成 |
-| **转账（平台收款）** | 用户登记簿 → 自有资金（bizFunc=2042） | Front 已实现，Consume 待集成 |
+| **银行渠道能力：平台付款** | 自有资金 → 用户登记簿（bizFunc=2041） | Front 已接银行渠道；lsym 暂无业务层调用 |
+| **银行渠道能力：平台收款** | 用户登记簿 → 自有资金（bizFunc=2042） | Front 已接银行渠道；lsym 暂无业务层调用 |
 | **调账** | 内部调账 | 待确认业务场景 |
 
 ---
@@ -70,7 +70,7 @@
 | # | 开发点 | 说明 | 状态 |
 |---|--------|------|------|
 | 4.1 | `chainRecharge` 兼容性 | 无需改造，自有资金充值走 `transType=C`（普通充值），Pack/Check/Trans/After 全部兼容 | ✅ |
-| 4.2 | 转账 LiteFlow 集成 | 在消费流程中判断哪方是自有资金账户，调用 `platformPay` 或 `platformReceive` | ❌ 待开发 |
+| 4.2 | 平台收付款业务流程 | 当前 lsym 业务层暂无该业务闭环，不在 Consume 中接入 `platformPay` / `platformReceive` | — |
 
 ### 第 5 层：Front — 银行接口抽象（✅ 已实现）
 
@@ -100,7 +100,7 @@
 | `MR` | `MC` | 出金 |
 | `MR` | `MR` | 入金 |
 
-> 排查自有资金池平台收付款时，先确认主交易类型是 `MC` 还是 `MR`，再按上表判断账户变动明细的入金/出金方向。
+> 排查自有资金池银行渠道账户变动时，先确认主交易类型是 `MC` 还是 `MR`，再按上表判断账户变动明细的入金/出金方向。当前该口径不代表 lsym 已存在平台收付款业务流程。
 
 ### 第 7 层：Data-Batch — 批处理
 
@@ -111,23 +111,23 @@
 
 ---
 
-## 三、Front 后待开发部分
+## 三、Front 渠道能力说明
 
-以下为 Front 层已完成接口定义和 ZX 实现，但尚未在业务层（Consume LiteFlow）集成的部分：
+以下为 Front 层已完成接口定义和 ZX 实现。它们是银行渠道能力，不代表 lsym 业务层已有平台收付款业务闭环。
 
-### 3.1 转账 LiteFlow 集成（核心待开发）
+### 3.1 当前边界
 
 **现状**：
 - Front 层 `platformPay` / `platformReceive` 方法已完整实现
 - Consume 层的 `TransferTrans` 组件当前仅调用 `transTransfer`（普通转账 bizFunc=27）
-- 没有组件根据 `SELF_FUND_ACCOUNT_CONFIG` 判断是否需要走平台转账
+- lsym 业务层暂无平台收付款业务流程，因此没有组件根据 `SELF_FUND_ACCOUNT_CONFIG` 走平台转账
 
-**待开发内容**：
+**如后续明确新增业务流程，再重新设计以下内容：**
 
 | # | 开发项 | 说明 |
 |---|--------|------|
 | A | 配置读取组件 | LiteFlow 组件从 `bas_param_t` 读取 `SELF_FUND_ACCOUNT_CONFIG`，判断付款/收款方是否为自有资金账户 |
-| B | 路由判断 | 消费流程中：付款卡是自有资金 → 调 `platformPay`；收款卡是自有资金 → 调 `platformReceive` |
+| B | 路由判断 | 业务流程中：付款卡是自有资金 → 调 `platformPay`；收款卡是自有资金 → 调 `platformReceive` |
 | C | Facade API 暴露 | 需确认 `FrontTransTransferFacadeApi` 或 `FrontTransConsumeFacadeApi` 是否需要新增 Feign 接口暴露 platformPay/platformReceive 给 Consume 层调用 |
 | D | 参数传递 | 调用方（LiteFlow 组件）从配置读取 bizFunc/fundType/dealType/bankEAccountId，设置到 `BasTransTransferReq` |
 | E | 结果处理 | platformPay/platformReceive 的返回结果处理和状态更新 |
@@ -143,7 +143,7 @@
 
 | # | 待确认项 | 影响 |
 |---|---------|------|
-| H | 转账（2041/2042）的业务触发时机 | 手工触发 vs 自动触发，决定是否需要新增 LiteFlow 链 |
+| H | 是否新增 lsym 平台收付款业务 | 当前无该业务；只有 Front 银行渠道能力 |
 | I | 调账业务场景和流程 | 决定是否需要新链路 |
 | J | 自有资金与消费流程的交互 | 消费扣款时是否涉及自有资金账户参与 |
 
@@ -173,23 +173,23 @@ ZxTransNotifyRechargeJob（现有Job）
   → 更新状态 SUCCESS/FAIL
 ```
 
-### 4.3 转账流程（Front 已实现，Consume 待集成）
+### 4.3 银行渠道能力（Front 已实现，业务层未接入）
 
 ```
 平台付款（自有资金 → 用户）:
-  → [待开发] LiteFlow 组件判断自有资金
+  → [如后续新增业务] 业务流程判断自有资金
   → 读取 SELF_FUND_ACCOUNT_CONFIG
   → 设置 bizFunc=2041, fundType, dealType, bankEAccountId
-  → [待开发] Feign 调用 platformPay
+  → [如后续新增业务] Feign 调用 platformPay
   → Front ZxTransTransferHandle.platformPay()
   → SaasZxInterService.zxPlatformPay()
   → 银行接口
 
 平台收款（用户 → 自有资金）:
-  → [待开发] LiteFlow 组件判断自有资金
+  → [如后续新增业务] 业务流程判断自有资金
   → 读取 SELF_FUND_ACCOUNT_CONFIG
   → 设置 bizFunc=2042, fundType, dealType, bankEAccountId
-  → [待开发] Feign 调用 platformReceive
+  → [如后续新增业务] Feign 调用 platformReceive
   → Front ZxTransTransferHandle.platformReceive()
   → SaasZxInterService.zxPlatformReceive()
   → 银行接口
@@ -213,7 +213,7 @@ ZxTransNotifyRechargeJob（现有Job）
 - [ ] **Front Handle**：实现 `XxTransTransferHandle.platformPay()` 和 `platformReceive()`
 - [ ] **Front 底层接口**：实现 `SaasXxInterService.xxPlatformPay()` 和 `xxPlatformReceive()`
 - [ ] **Front DTO**：确认 `BasTransTransferReq` 扩展字段是否满足新渠道需求
-- [ ] **Consume LiteFlow**：集成平台转账路由判断
+- [ ] **业务层流程**：仅在确认新增 lsym 平台收付款业务后，再设计并接入平台转账路由判断
 
 ### 不需要做
 
