@@ -80,6 +80,9 @@
   - `batchChangeAccountForRefundConsume`
 - 设计中的统一 `AccountChangeApi` 目前还未完整落地
 - “6 张明细/冻结/Entry 表迁移到 base 库并统一事务” 仍属于进行中的重构方向
+- 自有资金池平台收付款的账户变动明细类型映射：
+  - `MC` 对应账户变动明细：`MI` 为入金，`MO` 为出金
+  - `MR` 对应账户变动明细：`MC` 为出金，`MR` 为入金
 
 ## 9. 文档与记忆存放规则
 
