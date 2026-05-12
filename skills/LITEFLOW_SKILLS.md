@@ -212,6 +212,32 @@ slot.clear();
   2. 同一卡同子账户下，`sample` 取值与聚合口径不一致，导致汇总记录属性串位。
   3. 04转01转充值记录与普通退款恢复记录混合聚合时，活动科目期初被覆盖或放大。
 
+### 消费退款分摊审查清单（2026-05-12更新）
+
+- 入参口径：
+  - 退款金额由用户传入的 `subTransList.receiveAmount` 决定。
+  - 同一 `receiveCardCode` 多条明细必须先合并；合并后的 `subTransList` 是退款主记录落库口径。
+  - 业务确认：同一 `receiveCardCode` 唯一绑定商户，不会出现同卡多个 `receiveMerchantId`。
+- 收款卡口径：
+  - 多收款卡不能按整单金额重新计算退款比例。
+  - 每张 `receiveCardCode` 独立校验本卡 `01+02+04` 可退余额。
+  - 每张 `receiveCardCode` 独立判断是否全退。
+- 分摊口径：
+  - 账户类型层分母是当前 `receiveCardCode` 下 `01+02+04` 原消费金额合计，不是整张原订单金额。
+  - `SplitPercentPack`：账户类型层、科目层、流水层都是比例+兜底；流水层剩余金额补充分配后同 `consumeSubId` 合并。
+  - `SplitOrderPack`：账户类型层和科目层仍是比例+兜底，流水层按 `consumeSubId` 倒序逐笔贪心。
+  - 04账户在两种拆分模式都支持；04不走01/02科目两层，按04原流水可退金额处理。
+- 兜底闭环：
+  - 账户类型层兜底会修改 `accountRefundAmtMap`。
+  - 兜底后必须重新回写 `cancel01Amt/cancel02Amt/cancel04Amt`。
+  - 后续 `cardCodeSubConsumeCancelXXAmtMaps` 只读取 `cancelXXAmt`，不回写会造成主单金额与子明细金额不一致。
+- 回归测试重点：
+  - 同卡多明细合并。
+  - 极小金额触发兜底。
+  - 01/02/04混合消费后部分退款。
+  - 比例模式和逐笔模式都覆盖04。
+  - 04原路退回与04转01都覆盖。
+
 ---
 
 ## Skills 文件位置

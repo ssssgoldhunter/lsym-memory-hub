@@ -177,24 +177,32 @@ TransferTransPack → 业务校验 → TransferTransAuth
 ### 关键特点
 - 原路退回：01退01，02退02，04退04
 - 膨胀金按比例退回02账户
-- 支持按比例退款和按单退款
+- 支持按比例退款和按单退款（当前“按单/逐笔”主要体现在流水层逐笔贪心）
+- 退款请求必须以 `subTransList` 明确传入收款卡退款金额；同一 `receiveCardCode` 多条明细需要先合并
+- 同一 `receiveCardCode` 业务上唯一绑定商户，不会出现同卡多个 `receiveMerchantId`
 
 ### 退款方式对比
 | 退款方式 | 组件名 | 分摊深度 | 流水层分配 | 说明 |
 |----------|--------|----------|-----------|------|
 | **比例退款** | SplitPercentPack | 三层 | 比例计算+补充分配合并 | 按原消费各账户/科目/流水比例退款 |
-| **订单退款** | SplitOrderPack | 三层 | 贪心逐笔分配 | 按子订单金额退款，流水层逐笔扣减 |
+| **订单退款/逐笔退款** | SplitOrderPack | 三层 | 贪心逐笔分配 | 账户类型层和科目层仍按比例+兜底，流水层逐笔扣减 |
 
 ### 退款分摊结构（三层）
 
 ```
-退款请求金额 (receiveAmount)
+用户传入 subTransList
+│
+├─ 先按 receiveCardCode 合并 receiveAmount
+│   ├─ 同卡多条明细必须合并，避免重复使用整卡可退余额
+│   └─ 合并后的 subTransList 会作为退款主记录落库口径
 │
 ├─ 第一层：账户类型层分摊
+│   ├─ 分母：当前 receiveCardCode 下 01 + 02 + 04 的原消费金额合计
 │   ├─ 排序：从 Slot 读取 consumeSubAccountSort，倒序
 │   ├─ 前N个按比例：refundTotalAmt × accountConsumeAmt / totalConsumeAmt (HALF_UP)
 │   ├─ 最后一个兜底剩余金额
-│   └─ 兜底补充分配：剩余金额向有容量的账户类型补分配
+│   ├─ 兜底补充分配：剩余金额向有容量的账户类型补分配
+│   └─ 兜底后必须重新回写 cancel01Amt/cancel02Amt/cancel04Amt，再进入子明细落地
 │
 ├─ 第二层：科目层分摊 (01/02，04跳过)
 │   ├─ 排序：按 activityTypeSort 倒序
@@ -211,6 +219,10 @@ TransferTransPack → 业务校验 → TransferTransAuth
 - **退款期限**: 原消费后30天内
 - **退款次数**: 支持多次部分退款
 - **膨胀金退款**: 按原消费比例退回02账户
+- **收款卡口径**: 退款金额由用户传入的 `subTransList.receiveAmount` 决定，不按整单重新计算多收款卡退款比例
+- **单卡可退校验**: 每张 `receiveCardCode` 独立校验本卡 `01+02+04` 可退余额，独立判断是否全退
+- **04账户**: 比例模式和逐笔模式都支持 04；04可走原路退回，也可按配置走 04转01
+- **极值兜底**: 账户类型层、科目层、流水层都有兜底，兜底金额必须参与最终退款子单金额落地
 
 ### 退款数据流转示例
 ```
@@ -238,9 +250,16 @@ consumeTransRefundPack → 业务校验 → 查询原消费
 → consumeTransRefundSplitSwitch (拆分方式路由)
 → ├─ SplitPercentPack: 账户类型层(比例) → 科目层(比例) → 流水层(比例+补充分配+合并)
 → └─ SplitOrderPack:   账户类型层(比例) → 科目层(比例) → 流水层(贪心逐笔)
-→ bashChainRefundModelSwitch (退款模型)
-→ RefundRecharge04/01 → consumeTransRefundAfter
+→ 04退款模型路由
+→ ├─ bashChainRefundModel04: consumeTransRefund04 → consumeTransRefund04Process → consumeTransRefund01 → consumeTransRefund02 → consumeTransRefundAfter
+→ └─ bashChainRefundModel01: consumeTransRefundRecharge01 → consumeTransRefund01 → consumeTransRefund02 → consumeTransRefundModel1After
 ```
+
+### 2026-05-12 退款分摊修复记忆
+- 问题原因：极值金额下，比例分摊后触发兜底，但兜底只更新 `accountRefundAmtMap`，未重新回写 `cancel01Amt/cancel02Amt/cancel04Amt`，导致计算金额与最终子明细落地金额不一致。
+- 同卡多明细问题：如果同一 `receiveCardCode` 被上游拆成多条退款明细，逐条分摊会重复基于整张卡的可退余额计算，可能重复触发兜底并造成账户类型金额偏移。
+- 修复口径：SplitPercentPack 和 SplitOrderPack 都先按 `receiveCardCode` 合并 `subTransList`，再按当前收款卡内部 `01+02+04` 原消费金额计算分摊；兜底后必须回写最终 `cancelXXAmt`。
+- 测试重点：同卡多明细、极小金额、01/02/04混合、部分退款/全退、04原路退回、04转01。
 
 ---
 
