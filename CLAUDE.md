@@ -109,10 +109,20 @@ slhy/
 
 ## 核心文档索引
 
+### LLM / Agent 入口
+
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| LLM入口 | `llms.txt` | 第一入口，说明阅读顺序、任务路由和状态标签 |
+| 项目精简记忆 | `workflow/PROJECT_MEMORY.md` | 高频规则、当前业务状态、排查清单 |
+| 主题索引 | `topics/README.md` | 按问题域聚合当前口径和源码入口 |
+
 ### 必读文档（按优先级）
 
 | 优先级 | 文档 | 路径 | 说明 |
 |--------|------|------|------|
+| 1 | LLM入口 | `llms.txt` | 任务路由和默认阅读顺序 |
+| 1 | 主题索引 | `topics/README.md` | 高频问题域入口 |
 | 1 | 快速参考 | `docs/TRANSACTION_QUICK_REFERENCE.md` | 六大交易+预消费+冻结流程快速查询 |
 | 1 | 完整设计文档 | `docs/SUPPLY_CHAIN_DESIGN_V5.5.md` | 最权威的设计文档 |
 | 2 | 账户变动源码映射 | `docs/ACCOUNT_CHANGE_SOURCE_MAP.md` | 交易场景→源码→账户变动入口映射 |
@@ -136,6 +146,14 @@ slhy/
 | API文档 | API接口文档 | `modules/API_REFERENCE.md` | 完整API接口清单 |
 | 数据库 | 数据库表结构 | `modules/DATABASE_SCHEMA.md` | 核心表结构说明 |
 | 账户开户 | 开户模块 | `modules/ACCOUNT_OPENING.md` | 预开户与用户注册区别 |
+
+### 当前主题页
+
+| 主题 | 路径 | 说明 |
+|------|------|------|
+| 消费退款 | `topics/consume-refund.md` | 比例/逐笔退款、04退款、兜底分摊、同卡合并 |
+| 账户变动 | `topics/account-change.md` | 账户更新入口、MAC/CAS、task旧路径、明细一致性 |
+| 自有资金池 | `topics/self-fund-account.md` | 自有资金池、特殊账户充值、开发计划 |
 
 ### 技术决策与计划
 
@@ -268,6 +286,9 @@ Pack → Check → Trans → After
 | 项目文档 | `lsym-memory-hub/docs/` |
 | 技术文档 | `lsym-memory-hub/architecture/` |
 | 工作流程 | `lsym-memory-hub/workflow/` |
+| 当前主题页 | `lsym-memory-hub/topics/` |
+| 需求总览 | `lsym-memory-hub/requirements/` |
+| 高频问题索引 | `lsym-memory-hub/bugs/` |
 
 ### 代码与文档分离
 
@@ -303,7 +324,7 @@ Pack → Check → Trans → After
 2. **提现结果查询接口优化** — 未查到记录时返回优化
 3. **授信合同功能** — 权限统一、下载优化、批量异常处理、导入增加备注字段
 4. **配置调整与优雅停机** — 优雅处理时间配置、bootstrap.properties 调整
-5. **消费退款分摊修复** — 同卡退款明细合并，按收款卡内部 01/02/04 原消费金额分摊，兜底金额必须回写最终 `cancelXXAmt`
+5. **消费退款分摊修复** — 同卡退款明细合并，按收款卡内部 01/02/04 原消费金额分摊，兜底金额必须回写最终 `cancelXXAmt`；当前主题入口 `topics/consume-refund.md`
 
 ### 冷冻分支工作记录（lsym_20260116_limeng_restruct）
 

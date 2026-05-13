@@ -1,0 +1,44 @@
+# lsym-memory-hub LLM Entry
+
+> This repository is the project memory and documentation hub for the `lsym` catering fund system.
+> Use this file as the first navigation page when an AI agent needs project context.
+
+## Read First
+
+1. `workflow/PROJECT_MEMORY.md`
+   - Compact current memory, high-frequency rules, active business context.
+2. `topics/README.md`
+   - Topic index for current knowledge.
+3. `README.md`
+   - Repository structure and general document map.
+4. `workflow/DOCUMENT_MANAGEMENT_RULES.md`
+   - Rules for where to store new documents and how to mark document status.
+
+## Source Priority
+
+1. Current source code in `../slhy/`
+2. Current topic pages in `topics/`
+3. Current design and reference docs in `docs/`, `requirements/`, `architecture/`, `modules/`
+4. Historical conversation logs in `conversation-logs/`
+
+Memory documents are navigation and explanation. When implementing or making a precise claim, verify against source code first.
+
+## Topic Shortcuts
+
+- Consume refund: `topics/consume-refund.md`
+- Account change and MAC/CAS: `topics/account-change.md`
+- Self fund account: `topics/self-fund-account.md`
+
+## Status Labels
+
+- `current`: current working basis.
+- `verified-against-source`: checked against source code.
+- `historical`: preserved for traceability; do not use as current basis without re-checking.
+- `needs-source-check`: useful, but source code must be checked before using.
+
+## Common Task Routing
+
+- Business flow question: read `topics/README.md`, then the matching topic page.
+- Transaction implementation question: read `workflow/PROJECT_MEMORY.md`, then source code under `../slhy/fund-catering/`.
+- New long-term finding: update the relevant topic page and, if high-frequency, `workflow/PROJECT_MEMORY.md`.
+- One-off investigation: prefer a dated doc under `docs/`, `requirements/`, or `conversation-logs/` instead of bloating core memory.

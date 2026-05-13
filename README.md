@@ -9,7 +9,11 @@
 ```
 lsym-memory-hub/
 ├── CLAUDE.md                    # AI 工作配置（必读）
+├── llms.txt                     # LLM/Agent 第一入口
 ├── README.md                    # 本文件
+├── topics/                      # LLM 主题索引与当前口径
+├── requirements/                # 当前需求总览与需求索引
+├── bugs/                        # 高频问题索引
 ├── docs/                        # 核心设计文档
 │   ├── SUPPLY_CHAIN_DESIGN_V5.5.md       # 完整设计文档（最权威）
 │   ├── TRANSACTION_QUICK_REFERENCE.md    # 六大交易快速参考
@@ -35,6 +39,9 @@ lsym-memory-hub/
 │   └── MAC_CONCURRENCY_FIX.md            # MAC并发修复
 ├── business-flows/              # 业务流程文档
 │   └── CONSUME_FLOW_DIAGRAMS.md          # 消费流程图
+├── api-docs/                    # API专项文档（历史目录）
+├── common-issues/               # 历史问题目录
+├── knowledge-base/              # 知识库目录
 ├── skills/                      # AI 技能和技术指南
 │   └── LITEFLOW_SKILLS.md                # LiteFlow 开发技能
 ├── workflow/                    # 工作流程与规范
@@ -65,6 +72,14 @@ lsym-memory-hub/
 
 ## 核心文档速览
 
+### LLM / Agent 入口
+
+| 文档 | 说明 |
+|------|------|
+| [llms.txt](./llms.txt) | 给 LLM/Agent 的第一入口，说明阅读顺序和任务路由 |
+| [项目精简记忆](./workflow/PROJECT_MEMORY.md) | 高频规则、当前业务状态、排查清单 |
+| [主题索引](./topics/README.md) | 按问题域聚合当前口径和源码入口 |
+
 ### 六大交易流程
 
 | 流程 | 特点 | 快速查看 |
@@ -75,6 +90,14 @@ lsym-memory-hub/
 | 提现 | 自动提现+人工审核 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
 | 转账 | 三层锁机制，支持批量 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
 | 消费退款 | 按比例/按单退款 | [快速参考 →](./docs/TRANSACTION_QUICK_REFERENCE.md) |
+
+### 当前主题页
+
+| 主题 | 说明 | 快速查看 |
+|------|------|----------|
+| 消费退款 | 比例/逐笔退款、04退款、兜底分摊、同卡合并 | [主题页 →](./topics/consume-refund.md) |
+| 账户变动 | 账户更新入口、MAC/CAS、task旧路径、明细一致性 | [主题页 →](./topics/account-change.md) |
+| 自有资金池 | 自有资金池、特殊账户充值、开发计划 | [主题页 →](./topics/self-fund-account.md) |
 
 ### 技术架构
 
@@ -103,6 +126,7 @@ lsym-memory-hub/
 
 | 日期 | 更新内容 |
 |------|----------|
+| 2026-05-12 | 记忆库升级为轻量 LLM Wiki：新增 `llms.txt`、`topics/`、`requirements/`、`bugs/` 入口 |
 | 2026-05-06 | 版本号对齐源码：ShardingSphere 5.5.0、LiteFlow 2.12.4.1、MyBatis Plus 3.5.5、routing-service 9子模块 |
 | 2026-05-04 | 以 lsym_prod 为主线对齐全部文档：路径修正(Mac)、分支状态、开发重点 |
 | 2026-04-27 | 根据当前源码重整 fund-catering 主结构文档，主扫描范围排除 data-batch |

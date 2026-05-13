@@ -20,11 +20,19 @@
 
 ## 3. 默认阅读顺序
 
-1. `lsym-memory-hub/docs/TRANSACTION_QUICK_REFERENCE.md`
-2. `lsym-memory-hub/docs/SUPPLY_CHAIN_DESIGN_V5.5.md`
-3. `lsym-memory-hub/architecture/FRAMEWORK_STRUCTURE.md`
-4. `lsym-memory-hub/modules/MODULE_FUND_CATERING.md`
-5. 对应源码目录 `slhy/fund-catering/...`
+1. `lsym-memory-hub/llms.txt`
+2. `lsym-memory-hub/topics/README.md`
+3. `lsym-memory-hub/docs/TRANSACTION_QUICK_REFERENCE.md`
+4. `lsym-memory-hub/docs/SUPPLY_CHAIN_DESIGN_V5.5.md`
+5. `lsym-memory-hub/architecture/FRAMEWORK_STRUCTURE.md`
+6. `lsym-memory-hub/modules/MODULE_FUND_CATERING.md`
+7. 对应源码目录 `slhy/fund-catering/...`
+
+### 3.1 高频主题入口
+
+- 消费退款：`lsym-memory-hub/topics/consume-refund.md`
+- 账户变动与 MAC/CAS：`lsym-memory-hub/topics/account-change.md`
+- 自有资金池/特殊账户：`lsym-memory-hub/topics/self-fund-account.md`
 
 ## 4. 核心业务记忆
 
@@ -89,6 +97,9 @@
 - 默认情况下：
   - `md` 文档、分析结论、项目记忆放 `lsym-memory-hub`
   - 源码、配置、资源文件放 `slhy`
+  - 高频主题收敛到 `lsym-memory-hub/topics/`
+  - 当前需求总览放 `lsym-memory-hub/requirements/`
+  - 反复出现的问题索引放 `lsym-memory-hub/bugs/`
 - 只有用户明确要求时，才把文档放进代码仓
 
 ## 10. 会话工作习惯
@@ -147,7 +158,8 @@
 
 1. 如果发现长期有效的新规则，更新 `workflow/PROJECT_MEMORY.md`
 2. 如果发现源码映射变化，更新 `docs/ACCOUNT_CHANGE_SOURCE_MAP.md`
-3. 如果只是一次性结论，不必污染长期记忆
+3. 如果发现某个问题域会反复出现，更新或新增 `topics/*.md`
+4. 如果只是一次性结论，不必污染长期记忆
 
 ### F. 渠道失败与冻结处理规则
 
@@ -157,3 +169,15 @@
 4. 2026-03-17 已确认并修正的实例：
    - `TransferTrans`
    - `TransferTransAuth`
+
+## 12. 当前主题层结构（2026-05-12 更新）
+
+`lsym-memory-hub` 已按 `mdl-memory-hub` 的轻量 LLM Wiki 方式升级：
+
+- `llms.txt`：LLM/Agent 第一入口，说明阅读顺序、任务路由和状态标签。
+- `topics/README.md`：主题索引。
+- `topics/consume-refund.md`：消费退款比例/逐笔分摊、04退款、兜底、同卡合并。
+- `topics/account-change.md`：账户变动、MAC/CAS、task旧路径排查。
+- `topics/self-fund-account.md`：自有资金池、特殊账户充值、开发计划。
+- `requirements/overview.md`：当前需求总览。
+- `bugs/README.md`：高频问题索引。
