@@ -10,6 +10,7 @@ Use this directory for active or summarized requirements. Keep historical specs 
 ## Current Overview
 
 - `overview.md` - high-level requirement and development focus summary.
+- `2026-05-18-platform-recharge-batch.md` - 平台 03 渠道充值批量高并发上账需求规格。
 
 ## Related Historical Specs
 
