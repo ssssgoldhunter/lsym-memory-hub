@@ -69,12 +69,16 @@ CREATE TABLE `trans_platform_recharge_batch_detail` (
   `operator_code` varchar(64) DEFAULT NULL COMMENT '运营商编码',
   `org_code` varchar(64) DEFAULT NULL COMMENT '机构编码',
   `platform_code` varchar(64) DEFAULT NULL COMMENT '平台编码',
-  `trans_date` varchar(16) DEFAULT NULL COMMENT '交易日期',
+  `trans_date` varchar(10) DEFAULT NULL COMMENT '交易日期(yyyyMMdd)',
   `txn_time` varchar(32) DEFAULT NULL COMMENT '交易时间',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`detail_id`),
-  UNIQUE KEY `uk_trans_no` (`trans_no`)
+  UNIQUE KEY `uk_trans_no` (`trans_no`),
+  KEY `idx_batch_no` (`batch_no`),
+  KEY `idx_status` (`status`),
+  KEY `idx_platform_card_code` (`platform_card_code`),
+  KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台充值批量处理明细表';
 ```
 
