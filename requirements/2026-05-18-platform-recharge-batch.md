@@ -1,8 +1,8 @@
 # 平台 03 渠道充值批量高并发上账需求规格
 
-更新时间：2026-05-18
+更新时间：2026-05-25
 
-状态：待开发
+状态：已完成
 
 适用代码仓：`/Users/limeng/workspaces/IdeaProjects_lsym_dep/slhy`
 
@@ -11,6 +11,44 @@
 - `fund-catering-task`
 - `fund-catering-consume`
 - `fund-catering-base`
+
+## 当前验收结论
+
+平台 03 渠道充值批量实收已按当前业务口径完成。
+
+当前确认口径：
+
+- 数据库表和唯一索引已处理。
+- Redis done 继续沿用单流水 key：`platform_recharge:done:{operatorCode}:{platformCode}:{transNo}`。
+- 5000 笔及更大批量的分页提交后续再优化，当前先保留一次提交当前查询结果。
+- 用户本地编译已通过。
+
+已落地链路：
+
+1. `fund-catering-task` 采集银行平台流水，过滤 `TRANS_TP = 03`。
+2. task 按 Redis done 预过滤已完成流水。
+3. task 组装 `PlatformRechargeBatchReq` 并调用 `TransConsumeApi.platformRechargeBatch`。
+4. `fund-catering-consume` 入口抢平台卡锁，抢不到直接返回 `SKIPPED_LOCKED`。
+5. consume 同步写入 `trans_platform_recharge_batch_detail`，状态为 `I`。
+6. consume 异步按 `platform.recharge.batch.chunkSize` 分片处理。
+7. TX1 写入 `trans_recharge_t` 和 `trans_recharge_sub_t`，状态先为 `P`。
+8. TX2 写账户变动明细并更新平台卡 04 账户余额。
+9. 成功后更新明细状态 `S`、充值状态 `S`、写 Redis done。
+10. 失败明细状态 `F`，可通过补偿接口重试。
+
+主要源码入口：
+
+- task：`fund-catering/fund-catering-task/src/main/java/com/chinaums/erp/slhy/catering/task/job/zx/PlatformRechargeJobService.java`
+- API：`fund-catering/fund-catering-consume/fund-catering-consume-api/src/main/java/com/chinaums/erp/slhy/catering/consume/api/TransConsumeApi.java`
+- controller：`fund-catering/fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/controller/TransConsumeController.java`
+- 批量服务：`fund-catering/fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/service/impl/PlatformRechargeBatchServiceImpl.java`
+- 批量明细：`fund-catering/fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/domain/TransPlatformRechargeBatchDetail.java`
+
+后续非阻塞优化：
+
+- task 查询结果按分页或固定大小拆分提交，降低单次 Feign 请求体和 SQL `IN` 压力。
+- 根据压测结果调整 `platform.recharge.batch.chunkSize`。
+- 补充运维查询入口，查看 `I/P/S/F` 明细状态和补偿结果。
 
 ## 一、背景
 
@@ -874,4 +912,3 @@ fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/e
 - 不要吞异常。
 - 不要使用 Redis 作为唯一防重依据。
 - 不要绕过充值主/子流水表，否则报表、查询、后续退款/对账会断链。
-

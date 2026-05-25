@@ -33,6 +33,7 @@
 - 消费退款：`lsym-memory-hub/topics/consume-refund.md`
 - 账户变动与 MAC/CAS：`lsym-memory-hub/topics/account-change.md`
 - 自有资金池/特殊账户：`lsym-memory-hub/topics/self-fund-account.md`
+- 平台 03 渠道充值批量实收：`lsym-memory-hub/requirements/2026-05-18-platform-recharge-batch.md`
 
 ## 4. 核心业务记忆
 
@@ -91,6 +92,17 @@
 - 自有资金池银行渠道账户变动明细类型映射（lsym 业务层暂无平台收付款业务闭环）：
   - `MC` 对应账户变动明细：`MI` 为入金，`MO` 为出金
   - `MR` 对应账户变动明细：`MC` 为出金，`MR` 为入金
+
+## 8.1 平台 03 渠道充值批量实收状态
+
+- 状态：已完成。
+- 当前分支/实现口径：批量实收模式，不走逐笔 `rechargeTrans`。
+- task 入口：`fund-catering-task/.../job/zx/PlatformRechargeJobService.java`
+- consume 入口：`TransConsumeApi.platformRechargeBatch`、`PlatformRechargeBatchServiceImpl`
+- 链路：task 采集 03 流水 -> Redis done 预过滤 -> consume 抢平台卡锁 -> 写批量明细 -> 异步分片 TX1/TX2 -> 成功写 done 和状态 `S`，失败状态 `F` 可补偿。
+- Redis done 当前使用单流水 key：`platform_recharge:done:{operatorCode}:{platformCode}:{transNo}`，不用改 Set。
+- 数据库表和唯一索引已处理。
+- 5000 笔及更大批量的分页/拆分提交后续优化，不阻塞当前完成状态。
 
 ## 9. 文档与记忆存放规则
 
