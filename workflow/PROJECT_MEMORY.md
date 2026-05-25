@@ -103,6 +103,7 @@
 - Redis done 当前使用单流水 key：`platform_recharge:done:{operatorCode}:{platformCode}:{transNo}`，不用改 Set。
 - 数据库表和唯一索引已处理。
 - 5000 笔及更大批量的分页/拆分提交后续优化，不阻塞当前完成状态。
+- 待处理：平台卡锁存在跨线程释放风险。当前 HTTP 线程加 Redisson 锁、异步线程释放时可能因 `isHeldByCurrentThread()` 为 false 而未实际释放，日志仍可能误报成功。详见 `bugs/2026-05-26-platform-recharge-card-lock-async-release.md`。
 
 ## 9. 文档与记忆存放规则
 

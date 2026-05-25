@@ -50,6 +50,10 @@
 - 根据压测结果调整 `platform.recharge.batch.chunkSize`。
 - 补充运维查询入口，查看 `I/P/S/F` 明细状态和补偿结果。
 
+待处理问题：
+
+- 平台卡锁当前存在跨线程释放风险：HTTP 线程加 Redisson 锁，异步线程释放时 `isHeldByCurrentThread()` 为 false，业务日志可能误报“释放卡锁成功”，实际锁仍需等 TTL 过期。详见 `../bugs/2026-05-26-platform-recharge-card-lock-async-release.md`。
+
 ## 一、背景
 
 当前平台实收充值入口在 `fund-catering-task`：

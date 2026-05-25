@@ -1,7 +1,7 @@
 # Bug Index
 
 > Status: current
-> Last updated: 2026-05-12
+> Last updated: 2026-05-26
 
 This directory is the LLM-facing bug index for `lsym-memory-hub`.
 
@@ -13,6 +13,7 @@ This directory is the LLM-facing bug index for `lsym-memory-hub`.
 |------|---------------|
 | 消费退款分摊 | `../topics/consume-refund.md` |
 | 账户变动/MAC/CAS | `../topics/account-change.md` |
+| 平台批量实收卡锁 | `2026-05-26-platform-recharge-card-lock-async-release.md` |
 | 历史问题目录 | `../common-issues/` |
 
 ## Maintenance Rule
