@@ -1,0 +1,247 @@
+// 环境数据缓存
+let environments = [];
+
+// 页面加载
+document.addEventListener('DOMContentLoaded', function () {
+    loadEnvironments();
+    setDefaultDate();
+});
+
+// 加载环境列表
+async function loadEnvironments() {
+    try {
+        const resp = await fetch('/api/envs');
+        const json = await resp.json();
+        if (json.success) {
+            environments = json.data;
+            populateEnvSelects();
+            renderEnvInfo();
+        }
+    } catch (e) {
+        console.error('加载环境失败:', e);
+    }
+}
+
+// 填充环境选择下拉框
+function populateEnvSelects() {
+    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env'];
+    selects.forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        environments.forEach(env => {
+            const opt = document.createElement('option');
+            opt.value = env.id;
+            opt.textContent = env.name;
+            sel.appendChild(opt);
+        });
+    });
+}
+
+// 判断环境类型（LSYM / MDL）和场景（测试 / 生产）
+function getEnvTags(envId) {
+    const isTest = envId.includes('test');
+    const brand = envId.startsWith('mdl') ? 'MDL' : 'LSYM';
+    return {
+        envLabel: isTest ? '测试' : '生产',
+        envClass: isTest ? 'env-test' : 'env-prod',
+        brand: brand,
+        brandClass: brand === 'MDL' ? 'env-brand-mdl' : 'env-brand-lsym'
+    };
+}
+
+// 渲染环境信息
+function renderEnvInfo() {
+    const container = document.getElementById('env-info');
+    container.innerHTML = environments.map(env => {
+        const tags = getEnvTags(env.id);
+        return `
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body py-2">
+                    <h6>
+                        <span class="env-badge ${tags.brandClass}">${tags.brand}</span>
+                        <span class="env-badge ${tags.envClass}">${tags.envLabel}</span>
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr><td class="text-muted" style="width:80px">会员编号:</td><td><code>${env.mchntMbrId}</code></td></tr>
+                        <tr><td class="text-muted">API:</td><td><code style="font-size:11px">${env.url.includes('test') ? '测试' : '生产'}</code></td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// 设置默认日期为今天
+function setDefaultDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('trans24-date').value = today;
+    document.getElementById('trans25-date').value = today;
+    document.getElementById('status-date').value = today;
+}
+
+// 格式化日期为 YYYYMMDD
+function formatDate(dateStr) {
+    return dateStr.replace(/-/g, '');
+}
+
+// 通用查询函数
+async function doQuery(url, body, resultId, spinnerId, btnId) {
+    const resultEl = document.getElementById(resultId);
+    const spinnerEl = document.getElementById(spinnerId);
+    const btnEl = document.getElementById(btnId);
+
+    spinnerEl.classList.remove('d-none');
+    btnEl.disabled = true;
+    resultEl.textContent = '查询中...';
+
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const json = await resp.json();
+
+        if (json.success) {
+            resultEl.textContent = JSON.stringify(json.data, null, 2);
+        } else {
+            resultEl.textContent = '❌ ' + json.message;
+        }
+    } catch (e) {
+        resultEl.textContent = '❌ 请求异常: ' + e.message;
+    } finally {
+        spinnerEl.classList.add('d-none');
+        btnEl.disabled = false;
+    }
+}
+
+// 账户查询
+function queryAcctInfo() {
+    const body = {
+        envId: document.getElementById('acct-env').value,
+        acctNo: document.getElementById('acct-no').value.trim(),
+        registerAttr: document.getElementById('acct-register-attr').value
+    };
+
+    if (!body.acctNo) {
+        alert('请输入J账号');
+        return;
+    }
+
+    doQuery('/api/query/acct-info', body, 'acct-result', 'spinner-acct', 'btn-acct');
+}
+
+// 24交易查询
+function queryTransDetail24() {
+    const dateVal = document.getElementById('trans24-date').value;
+    const body = {
+        envId: document.getElementById('trans24-env').value,
+        transDate: formatDate(dateVal),
+        acctNo: document.getElementById('trans24-acct-no').value.trim(),
+        transType: document.getElementById('trans24-type').value,
+        registerAttr: document.getElementById('trans24-register-attr').value,
+        page: parseInt(document.getElementById('trans24-page').value) || 1
+    };
+
+    if (!body.acctNo) {
+        alert('请输入J账号');
+        return;
+    }
+    if (!body.transDate) {
+        alert('请选择日期');
+        return;
+    }
+
+    doQuery('/api/query/trans-detail-24', body, 'trans24-result', 'spinner-trans24', 'btn-trans24');
+}
+
+// 25交易查询
+function queryTransDetail25() {
+    const dateVal = document.getElementById('trans25-date').value;
+    const body = {
+        envId: document.getElementById('trans25-env').value,
+        transDate: formatDate(dateVal),
+        transType: document.getElementById('trans25-type').value,
+        page: parseInt(document.getElementById('trans25-page').value) || 1
+    };
+
+    if (!body.transDate) {
+        alert('请选择日期');
+        return;
+    }
+
+    doQuery('/api/query/trans-detail-25', body, 'trans25-result', 'spinner-trans25', 'btn-trans25');
+}
+
+// 交易状态查询 - 联动切换字段
+function toggleStatusFields() {
+    const queryType = document.getElementById('status-query-type').value;
+    document.getElementById('pay-withdraw-fields').style.display = queryType === '74_withdraw' ? '' : 'none';
+    document.getElementById('pay-transfer-fields').style.display = queryType === '74_transfer' ? '' : 'none';
+    document.getElementById('withdraw-fields').style.display = queryType === '87' ? '' : 'none';
+}
+
+// 交易状态查询
+function queryTransStatus() {
+    const queryType = document.getElementById('status-query-type').value;
+    const dateVal = document.getElementById('status-date').value;
+    const body = {
+        envId: document.getElementById('status-env').value,
+        acctNo: document.getElementById('status-acct-no').value.trim(),
+        oriTransDate: formatDate(dateVal)
+    };
+
+    if (!body.acctNo) {
+        alert('请输入J账号');
+        return;
+    }
+    if (!body.oriTransDate) {
+        alert('请选择原始交易日期');
+        return;
+    }
+
+    if (queryType === '74_withdraw') {
+        // 74-提现查询: 只需 BUSS_ID
+        body.queryType = '74';
+        body.bussId = document.getElementById('status-wd-buss-id').value.trim();
+        if (!body.bussId) {
+            alert('请输入 BUSS_ID');
+            return;
+        }
+    } else if (queryType === '74_transfer') {
+        // 74-交易查询: BUSS_ID + BUSS_SUB_ID + TRANS_TYPE
+        body.queryType = '74';
+        body.bussId = document.getElementById('status-tf-buss-id').value.trim();
+        body.bussSubId = document.getElementById('status-tf-buss-sub-id').value.trim();
+        body.transType = document.getElementById('status-tf-trans-type').value;
+        if (!body.bussId) {
+            alert('请输入 BUSS_ID');
+            return;
+        }
+        if (!body.bussSubId) {
+            alert('交易查询需要输入 BUSS_SUB_ID');
+            return;
+        }
+    } else {
+        // 87-提现状态查询
+        body.queryType = '87';
+        body.oriTransSsn = document.getElementById('status-ori-trans-ssn').value.trim();
+        body.transAmt = document.getElementById('status-trans-amt').value.trim();
+        body.timeStampe = document.getElementById('status-timestamp').value.trim();
+        body.accountType = '1';
+    }
+
+    doQuery('/api/query/trans-status', body, 'status-result', 'spinner-status', 'btn-status');
+}
+
+// 复制结果
+function copyResult(elementId) {
+    const el = document.getElementById(elementId);
+    navigator.clipboard.writeText(el.textContent).then(() => {
+        // 简单反馈
+        const original = el.style.border;
+        el.style.border = '2px solid #198754';
+        setTimeout(() => { el.style.border = original; }, 500);
+    });
+}

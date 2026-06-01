@@ -1,0 +1,11 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: saas-zx-test-ui
+
+logging:
+  level:
+    com.chinaums.saas.test: DEBUG
+    root: INFO

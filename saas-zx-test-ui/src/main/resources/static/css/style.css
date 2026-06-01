@@ -1,0 +1,79 @@
+body {
+    background-color: #f5f7fa;
+    font-size: 14px;
+}
+
+.result-json {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    padding: 16px;
+    border-radius: 8px;
+    max-height: 600px;
+    overflow: auto;
+    font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 0;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.card-header {
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
+}
+
+.nav-tabs .nav-link {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.nav-tabs .nav-link.active {
+    color: #212529;
+    font-weight: 600;
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #495057;
+}
+
+.btn {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.env-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.env-test {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.env-prod {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.env-brand-lsym {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.env-brand-mdl {
+    background-color: #d4edda;
+    color: #155724;
+}

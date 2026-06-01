@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS ZX 测试工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="container-fluid py-3">
+    <h4 class="mb-3 text-center">🔧 SaaS 中信银行接口测试工具</h4>
+
+    <!-- Tab 导航 -->
+    <ul class="nav nav-tabs" id="mainTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="acct-tab" data-bs-toggle="tab" data-bs-target="#acctPanel" type="button" role="tab">📋 账户查询 (46)</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="trans24-tab" data-bs-toggle="tab" data-bs-target="#trans24Panel" type="button" role="tab">💰 24交易查询</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="trans25-tab" data-bs-toggle="tab" data-bs-target="#trans25Panel" type="button" role="tab">📊 25交易查询</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#statusPanel" type="button" role="tab">🔍 交易状态查询</button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="mainTabContent">
+
+        <!-- ========== 账户查询 (46) ========== -->
+        <div class="tab-pane fade show active" id="acctPanel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">查询参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="acct-env">
+                                    <!-- 动态填充 -->
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">J账号</label>
+                                <input type="text" class="form-control" id="acct-no" placeholder="例如: J01068500012852">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">registerAttr (登记簿标识)</label>
+                                <select class="form-select" id="acct-register-attr">
+                                    <option value="01">01 - 公共调账登记簿</option>
+                                    <option value="12">12 - 自有资金登记薄</option>
+                                    <option value="14" selected>14 - 担保登记薄</option>
+                                    <option value="00">00 - 默认</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="queryAcctInfo()" id="btn-acct">
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-acct"></span>
+                                查询账户
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>查询结果</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('acct-result')">复制</button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="acct-result" class="result-json">等待查询...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 24交易查询 ========== -->
+        <div class="tab-pane fade" id="trans24Panel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">查询参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="trans24-env">
+                                    <!-- 动态填充 -->
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">交易日期</label>
+                                <input type="date" class="form-control" id="trans24-date">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">J账号</label>
+                                <input type="text" class="form-control" id="trans24-acct-no" placeholder="例如: J01068500000101">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">TRANS_TYPE (交易类型)</label>
+                                <select class="form-select" id="trans24-type">
+                                    <option value="01">01 - 入金分账</option>
+                                    <option value="02">02 - 交易划转</option>
+                                    <option value="03">03 - 提现</option>
+                                    <option value="04">04 - 提现手续费</option>
+                                    <option value="05">05 - 提现退汇</option>
+                                    <option value="06">06 - 渠道来账</option>
+                                    <option value="98">98 - 所有(明细类型)</option>
+                                    <option value="99" selected>99 - 所有(汇总类型)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">registerAttr (登记簿标识)</label>
+                                <select class="form-select" id="trans24-register-attr">
+                                    <option value="01">01 - 公共调账登记簿</option>
+                                    <option value="12">12 - 自有资金登记薄</option>
+                                    <option value="13">13 - 担保登记薄</option>
+                                    <option value="17">17 - 待结算手续费登记簿</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">页码 (PAGE)</label>
+                                <input type="number" class="form-control" id="trans24-page" value="1" min="1">
+                            </div>
+                            <button class="btn btn-success w-100" onclick="queryTransDetail24()" id="btn-trans24">
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-trans24"></span>
+                                查询24交易
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>查询结果</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('trans24-result')">复制</button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="trans24-result" class="result-json">等待查询...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 25交易查询 ========== -->
+        <div class="tab-pane fade" id="trans25Panel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">查询参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="trans25-env">
+                                    <!-- 动态填充 -->
+                                </select>
+                                <div class="form-text">25接口 mchntMbrId 从所选环境自动获取</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">交易日期</label>
+                                <input type="date" class="form-control" id="trans25-date">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">TRANS_TYPE (交易类型)</label>
+                                <select class="form-select" id="trans25-type">
+                                    <option value="01">01 - 转账入金</option>
+                                    <option value="02">02 - 退汇</option>
+                                    <option value="03">03 - 支付渠道入金</option>
+                                    <option value="04">04 - 提现</option>
+                                    <option value="05">05 - 退款（预留）</option>
+                                    <option value="99" selected>99 - 所有</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">页码 (PAGE)</label>
+                                <input type="number" class="form-control" id="trans25-page" value="1" min="1">
+                            </div>
+                            <button class="btn btn-info w-100 text-white" onclick="queryTransDetail25()" id="btn-trans25">
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-trans25"></span>
+                                查询25交易
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>查询结果</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('trans25-result')">复制</button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="trans25-result" class="result-json">等待查询...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 交易状态查询 (74/87) ========== -->
+        <div class="tab-pane fade" id="statusPanel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">查询参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="status-env"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">查询类型</label>
+                                <select class="form-select" id="status-query-type" onchange="toggleStatusFields()">
+                                    <option value="74_withdraw">74 - 提现查询 (仅需BUSS_ID)</option>
+                                    <option value="74_transfer">74 - 交易查询 (转账/消费)</option>
+                                    <option value="87">87 - 提现状态查询</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">J账号</label>
+                                <input type="text" class="form-control" id="status-acct-no" placeholder="例如: J01068500003668">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">原始交易日期</label>
+                                <input type="date" class="form-control" id="status-date">
+                            </div>
+
+                            <!-- 74-提现查询: 只需 BUSS_ID -->
+                            <div id="pay-withdraw-fields">
+                                <hr class="my-2">
+                                <small class="text-muted">提现查询参数</small>
+                                <div class="mb-2 mt-2">
+                                    <label class="form-label">BUSS_ID (商户订单号) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="status-wd-buss-id" placeholder="必填">
+                                </div>
+                            </div>
+
+                            <!-- 74-交易查询: BUSS_ID + BUSS_SUB_ID + TRANS_TYPE -->
+                            <div id="pay-transfer-fields" style="display:none">
+                                <hr class="my-2">
+                                <small class="text-muted">交易查询参数 (转账/消费)</small>
+                                <div class="mb-2 mt-2">
+                                    <label class="form-label">BUSS_ID (商户订单号) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="status-tf-buss-id" placeholder="必填">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">BUSS_SUB_ID (商户子订单号) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="status-tf-buss-sub-id" placeholder="必填, 例如: xxx104">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">TRANS_TYPE (交易类型) <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" id="status-tf-trans-type">
+                                        <option value="01" selected>01 - 退款</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 87-提现状态 专用字段 -->
+                            <div id="withdraw-fields" style="display:none">
+                                <hr class="my-2">
+                                <small class="text-muted">提现状态查询参数</small>
+                                <div class="mb-2 mt-2">
+                                    <label class="form-label">ORI_TRANS_SSN (原始交易流水号)</label>
+                                    <input type="text" class="form-control form-control-sm" id="status-ori-trans-ssn" placeholder="例如: SG0G0004232497">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">交易金额 (transAmt)</label>
+                                    <input type="text" class="form-control form-control-sm" id="status-trans-amt" placeholder="可选, 例如: 100">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">时间戳 (timeStampe)</label>
+                                    <input type="text" class="form-control form-control-sm" id="status-timestamp" placeholder="可选, 例如: 2024-05-15-09.27.56.845086">
+                                </div>
+                            </div>
+
+                            <button class="btn btn-warning w-100 mt-2" onclick="queryTransStatus()" id="btn-status">
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-status"></span>
+                                查询交易状态
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>查询结果</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('status-result')">复制</button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="status-result" class="result-json">等待查询...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 环境信息展示 -->
+    <div class="card mt-3">
+        <div class="card-header">当前环境配置</div>
+        <div class="card-body">
+            <div id="env-info" class="row">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
