@@ -233,9 +233,7 @@ public class SaasTestController {
             log.info("文件下载请求 bizFunc={}: {}", request.getBizFunc(), bodyJson);
 
             JSONObject result = SaasHttpUtil.send(env.getAppKey(), env.getAppId(), env.getUrl(), "file-download", bodyJson);
-            log.info("文件下载响应: errCode={}, sysRespCode={}",
-                    result != null ? result.getString("errCode") : "null",
-                    result != null ? result.getString("sysRespCode") : "null");
+            log.info("文件下载完整响应: {}", result != null ? result.toJSONString() : "null");
 
             if (result == null) {
                 return ResponseEntity.ok(ApiResponse.fail("银行接口无返回"));
