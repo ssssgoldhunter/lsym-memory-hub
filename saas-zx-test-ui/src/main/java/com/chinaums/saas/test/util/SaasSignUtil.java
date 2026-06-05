@@ -212,4 +212,53 @@ public class SaasSignUtil {
         body.put("reserve", reserve);
         return body;
     }
+
+    /**
+     * 构建余额转账请求体 (bizFunc=27)
+     * 参考 SaasZxTest#transferNew
+     */
+    public static Map<String, Object> buildTransferBody(String mchntId, String mchntMbrId,
+                                                         String chnlNo, String encryptedPayAct,
+                                                         String encryptedRecAct, String transAmt,
+                                                         String payName, String recName,
+                                                         String bussId, String bussSubId,
+                                                         String memo, String userRole,
+                                                         String appId, String appKey, String url) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        SimpleDateFormat stf = new SimpleDateFormat("HHmmss");
+        Date now = new Date();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("transSsn", getTransSsn(mchntMbrId));
+        body.put("transTime", getTransTime());
+        body.put("mchntId", mchntId);
+        body.put("mchntMbrId", mchntMbrId);
+        body.put("chnlNo", "0010");
+        body.put("bizFunc", "27");
+        body.put("ccy", "CNY");
+        body.put("outAcctNo", encryptedPayAct);
+        body.put("inAcctNo", encryptedRecAct);
+        body.put("transAmt", transAmt);
+        body.put("laasSsn", getLaasSsn(mchntId));
+        body.put("appIdBank", appId);
+        body.put("appKeyBank", appKey);
+        body.put("urlBank", url);
+
+        Map<String, Object> reserve = new HashMap<>();
+        reserve.put("USER_D_NM", payName);
+        reserve.put("USER_C_NM", recName);
+        reserve.put("USER_C_AMT", transAmt);
+        reserve.put("P_SELF_FLAG", "N");
+        reserve.put("P_SELF_AMT", "0");
+        reserve.put("BUSS_ID", bussId);
+        reserve.put("BUSS_SUB_ID", bussSubId);
+        reserve.put("TRANS_DT", sdf.format(now));
+        reserve.put("TRANS_TM", stf.format(now));
+        reserve.put("FUND_TP", userRole);
+        reserve.put("MEMO", memo != null && !memo.isEmpty() ? memo : "余额转账");
+        reserve.put("laasSsn", getLaasSsn(mchntId));
+        body.put("reserve", reserve);
+
+        return body;
+    }
 }

@@ -8,14 +8,27 @@ body {
     color: #cdd6f4;
     padding: 16px;
     border-radius: 8px;
-    max-height: 600px;
-    overflow: auto;
+    max-height: 420px;
+    overflow-y: auto;
+    overflow-x: auto;
     font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-wrap: break-word;
     margin-bottom: 0;
+}
+
+/* 结果区域卡片固定高度，内容滚动 */
+.result-card .card-body {
+    max-height: 460px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.result-card .result-json {
+    border-radius: 0 0 8px 8px;
+    max-height: 420px;
 }
 
 .card {
@@ -76,4 +89,28 @@ body {
 .env-brand-mdl {
     background-color: #d4edda;
     color: #155724;
+}
+
+/* 转账面板样式 */
+#transferPanel .form-check-input:checked {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+#transferPanel .form-check-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+#btn-transfer:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#btn-transfer:disabled:hover {
+    background-color: #dc3545;
+}
+
+#transfer-amt-yuan {
+    min-height: 18px;
 }
