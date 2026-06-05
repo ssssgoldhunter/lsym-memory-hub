@@ -24,7 +24,7 @@ async function loadEnvironments() {
 
 // 填充环境选择下拉框
 function populateEnvSelects() {
-    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env', 'transfer-env', 'download-env'];
+    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env', 'download-env'];
     selects.forEach(id => {
         const sel = document.getElementById(id);
         sel.innerHTML = '';
@@ -244,132 +244,6 @@ function copyResult(elementId) {
         el.style.border = '2px solid #198754';
         setTimeout(() => { el.style.border = original; }, 500);
     });
-}
-
-// ========== 转账功能 ==========
-
-// 金额实时换算（分→元）
-document.addEventListener('DOMContentLoaded', function () {
-    const amtInput = document.getElementById('transfer-amt');
-    if (amtInput) {
-        amtInput.addEventListener('input', function () {
-            const fen = this.value.trim();
-            const yuanEl = document.getElementById('transfer-amt-yuan');
-            if (fen && /^\d+$/.test(fen)) {
-                const yuan = (parseInt(fen, 10) / 100).toFixed(2);
-                yuanEl.textContent = '≈ ' + yuan + ' 元';
-            } else {
-                yuanEl.textContent = '';
-            }
-        });
-    }
-});
-
-// 转账开关切换
-function onTransferSwitchChange(el) {
-    const badge = document.getElementById('switch-status-badge');
-    const btn = document.getElementById('btn-transfer');
-
-    if (el.checked) {
-        // 开关打开 → 显示确认弹窗
-        const envEl = document.getElementById('transfer-env');
-        const envName = envEl.options[envEl.selectedIndex] ? envEl.options[envEl.selectedIndex].text : '';
-        const payAct = document.getElementById('transfer-pay-act').value.trim();
-        const recAct = document.getElementById('transfer-rec-act').value.trim();
-        const payName = document.getElementById('transfer-pay-name').value.trim();
-        const recName = document.getElementById('transfer-rec-name').value.trim();
-        const amt = document.getElementById('transfer-amt').value.trim();
-        const bussId = document.getElementById('transfer-buss-id').value.trim();
-        const bussSubId = document.getElementById('transfer-buss-sub-id').value.trim();
-        const memo = document.getElementById('transfer-memo').value.trim();
-
-        // 校验必填项
-        if (!payAct) { alert('请输入付款账号'); el.checked = false; return; }
-        if (!recAct) { alert('请输入收款账号'); el.checked = false; return; }
-        if (!amt) { alert('请输入交易金额'); el.checked = false; return; }
-        if (!bussId) { alert('请输入商户订单号'); el.checked = false; return; }
-        if (!bussSubId) { alert('请输入商户子订单号'); el.checked = false; return; }
-
-        const amtYuan = /^\d+$/.test(amt) ? (parseInt(amt, 10) / 100).toFixed(2) : '?';
-        const msg = '⚠️ 请确认以下转账信息：\n\n' +
-            '环境: ' + envName + '\n' +
-            '付款账号: ' + payAct + '\n' +
-            '付款名称: ' + (payName || '未填写') + '\n' +
-            '收款账号: ' + recAct + '\n' +
-            '收款名称: ' + (recName || '未填写') + '\n' +
-            '金额: ' + amt + ' 分 (≈ ' + amtYuan + ' 元)\n' +
-            'BUSS_ID: ' + bussId + '\n' +
-            'BUSS_SUB_ID: ' + bussSubId + '\n' +
-            '备注: ' + (memo || '余额转账') + '\n\n' +
-            '确认信息无误，点击"确定"激活转账按钮，"取消"关闭开关。';
-
-        if (confirm(msg)) {
-            // 确认 → 激活按钮
-            badge.textContent = '已开启';
-            badge.className = 'badge bg-danger ms-1';
-            btn.disabled = false;
-        } else {
-            // 取消 → 关闭开关
-            el.checked = false;
-            badge.textContent = '已关闭';
-            badge.className = 'badge bg-secondary ms-1';
-            btn.disabled = true;
-        }
-    } else {
-        // 开关关闭
-        badge.textContent = '已关闭';
-        badge.className = 'badge bg-secondary ms-1';
-        btn.disabled = true;
-    }
-}
-
-// 执行转账
-async function doTransfer() {
-    const resultEl = document.getElementById('transfer-result');
-    const spinnerEl = document.getElementById('spinner-transfer');
-    const btnEl = document.getElementById('btn-transfer');
-    const switchEl = document.getElementById('transfer-switch');
-
-    const body = {
-        envId: document.getElementById('transfer-env').value,
-        payAct: document.getElementById('transfer-pay-act').value.trim(),
-        recAct: document.getElementById('transfer-rec-act').value.trim(),
-        payName: document.getElementById('transfer-pay-name').value.trim(),
-        recName: document.getElementById('transfer-rec-name').value.trim(),
-        transAmt: document.getElementById('transfer-amt').value.trim(),
-        bussId: document.getElementById('transfer-buss-id').value.trim(),
-        bussSubId: document.getElementById('transfer-buss-sub-id').value.trim(),
-        memo: document.getElementById('transfer-memo').value.trim()
-    };
-
-    spinnerEl.classList.remove('d-none');
-    btnEl.disabled = true;
-    resultEl.textContent = '转账请求中...';
-
-    try {
-        const resp = await fetch('/api/transfer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const json = await resp.json();
-
-        if (json.success) {
-            resultEl.textContent = JSON.stringify(json.data, null, 2);
-        } else {
-            resultEl.textContent = '❌ ' + json.message;
-        }
-    } catch (e) {
-        resultEl.textContent = '❌ 请求异常: ' + e.message;
-    } finally {
-        spinnerEl.classList.add('d-none');
-        // 操作完成后自动关闭开关
-        switchEl.checked = false;
-        switchEl.dispatchEvent(new Event('change'));
-        document.getElementById('switch-status-badge').textContent = '已关闭';
-        document.getElementById('switch-status-badge').className = 'badge bg-secondary ms-1';
-        btnEl.disabled = true;
-    }
 }
 
 // ========== 文件下载功能 ==========

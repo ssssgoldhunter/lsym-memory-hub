@@ -28,11 +28,6 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#downloadPanel" type="button" role="tab">📥 文件下载</button>
         </li>
-        <!-- 转账功能暂不开放，风险过大
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="transfer-tab" data-bs-toggle="tab" data-bs-target="#transferPanel" type="button" role="tab" style="color:#dc3545;font-weight:700">💸 余额转账 (27)</button>
-        </li>
-        -->
     </ul>
 
     <div class="tab-content mt-3" id="mainTabContent">
@@ -409,98 +404,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- ========== 余额转账 (27) - 暂不开放 ========== -->
-        <!--
-        <div class="tab-pane fade" id="transferPanel" role="tabpanel">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header bg-danger text-white">⚠️ 余额转账 (bizFunc=27)</div>
-                        <div class="card-body">
-                            <!-- 危险提示 -->
-                            <div class="alert alert-danger py-2 mb-3" style="font-size:13px">
-                                <strong>⚠ 危险操作！</strong> 此操作会真实发起转账请求，请确认参数无误后再操作！
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">环境选择</label>
-                                <select class="form-select" id="transfer-env"></select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">付款账号 (outAcctNo)</label>
-                                <input type="text" class="form-control" id="transfer-pay-act" placeholder="例如: J01068500001703">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">付款方名称</label>
-                                <input type="text" class="form-control" id="transfer-pay-name" placeholder="付款方名称">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">收款账号 (inAcctNo)</label>
-                                <input type="text" class="form-control" id="transfer-rec-act" placeholder="例如: J01068500007355">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">收款方名称</label>
-                                <input type="text" class="form-control" id="transfer-rec-name" placeholder="收款方名称">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">
-                                    交易金额 <span style="color:#dc3545;font-weight:700;font-size:15px">（单位：分）</span>
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="transfer-amt" placeholder="例如: 26760 表示 267.60元" style="border-color:#dc3545">
-                                    <span class="input-group-text" style="background:#dc3545;color:#fff;font-weight:700">分</span>
-                                </div>
-                                <div class="form-text" id="transfer-amt-yuan" style="color:#dc3545;font-weight:600"></div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">商户订单号 (BUSS_ID) <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="transfer-buss-id" placeholder="必填">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">商户子订单号 (BUSS_SUB_ID) <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="transfer-buss-sub-id" placeholder="必填, 例如: xxxR 或 xxx104">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">备注 (MEMO)</label>
-                                <input type="text" class="form-control" id="transfer-memo" value="余额转账">
-                            </div>
-
-                            <!-- 开关区域 -->
-                            <hr class="my-3">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div>
-                                    <span style="font-weight:600">转账开关</span>
-                                    <span class="badge bg-secondary ms-1" id="switch-status-badge">已关闭</span>
-                                </div>
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="transfer-switch"
-                                           style="width:3em;height:1.5em;cursor:pointer"
-                                           onchange="onTransferSwitchChange(this)">
-                                </div>
-                            </div>
-                            <button class="btn btn-danger w-100" id="btn-transfer" disabled
-                                    onclick="doTransfer()">
-                                <span class="spinner-border spinner-border-sm d-none" id="spinner-transfer"></span>
-                                确认转账
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div class="card result-card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <span>转账结果</span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('transfer-result')">复制</button>
-                        </div>
-                        <div class="card-body">
-                            <pre id="transfer-result" class="result-json">等待操作...</pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        -->
 
     </div><!-- /tab-content -->
 

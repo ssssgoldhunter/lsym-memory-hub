@@ -5,7 +5,6 @@ import com.chinaums.saas.test.config.SaasAccountConfig;
 import com.chinaums.saas.test.dto.AccountQueryRequest;
 import com.chinaums.saas.test.dto.ApiResponse;
 import com.chinaums.saas.test.dto.FileDownloadRequest;
-import com.chinaums.saas.test.dto.TransferRequest;
 import com.chinaums.saas.test.dto.TransDetailQueryRequest;
 import com.chinaums.saas.test.dto.TransStatusQueryRequest;
 import com.chinaums.saas.test.model.SaasEnvironment;
@@ -172,57 +171,6 @@ public class SaasTestController {
         } catch (Exception e) {
             log.error("交易状态查询失败", e);
             return ApiResponse.fail("交易状态查询失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 余额转账 (bizFunc=27)
-     * 参考 SaasZxTest#transferNew
-     * ⚠️ 金额单位：分
-     */
-    @PostMapping("/transfer")
-    public ApiResponse<JSONObject> transfer(@RequestBody TransferRequest request) {
-        try {
-            // 参数校验
-            if (request.getPayAct() == null || request.getPayAct().isEmpty()) {
-                return ApiResponse.fail("付款账号不能为空");
-            }
-            if (request.getRecAct() == null || request.getRecAct().isEmpty()) {
-                return ApiResponse.fail("收款账号不能为空");
-            }
-            if (request.getTransAmt() == null || request.getTransAmt().isEmpty()) {
-                return ApiResponse.fail("交易金额不能为空");
-            }
-            if (request.getBussId() == null || request.getBussId().isEmpty()) {
-                return ApiResponse.fail("商户订单号(BUSS_ID)不能为空");
-            }
-            if (request.getBussSubId() == null || request.getBussSubId().isEmpty()) {
-                return ApiResponse.fail("商户子订单号(BUSS_SUB_ID)不能为空");
-            }
-
-            SaasEnvironment env = accountConfig.getEnvironment(request.getEnvId());
-            String encryptedPayAct = SM2EncryptUtil.sm2EncryptHex(env.getPublicKey(), request.getPayAct());
-            String encryptedRecAct = SM2EncryptUtil.sm2EncryptHex(env.getPublicKey(), request.getRecAct());
-
-            Map<String, Object> body = SaasSignUtil.buildTransferBody(
-                    env.getMchntId(), env.getMchntMbrId(), env.getChnlNo(),
-                    encryptedPayAct, encryptedRecAct, request.getTransAmt(),
-                    request.getPayName(), request.getRecName(),
-                    request.getBussId(), request.getBussSubId(),
-                    request.getMemo(), env.getUserRole(),
-                    env.getAppId(), env.getAppKey(), env.getUrl()
-            );
-
-            String bodyJson = JSONObject.toJSONString(body);
-            log.info("转账请求: {}", bodyJson);
-
-            JSONObject result = SaasHttpUtil.send(env.getAppKey(), env.getAppId(), env.getUrl(), "transfer", bodyJson);
-            log.info("转账响应: {}", result);
-
-            return ApiResponse.ok(result, result != null ? result.toJSONString() : null);
-        } catch (Exception e) {
-            log.error("转账失败", e);
-            return ApiResponse.fail("转账失败: " + e.getMessage());
         }
     }
 

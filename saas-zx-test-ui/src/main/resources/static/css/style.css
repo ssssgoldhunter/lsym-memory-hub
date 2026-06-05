@@ -90,27 +90,3 @@ body {
     background-color: #d4edda;
     color: #155724;
 }
-
-/* 转账面板样式 */
-#transferPanel .form-check-input:checked {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-
-#transferPanel .form-check-input:disabled {
-    opacity: 0.5;
-    cursor: not-allowed !important;
-}
-
-#btn-transfer:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-#btn-transfer:disabled:hover {
-    background-color: #dc3545;
-}
-
-#transfer-amt-yuan {
-    min-height: 18px;
-}
