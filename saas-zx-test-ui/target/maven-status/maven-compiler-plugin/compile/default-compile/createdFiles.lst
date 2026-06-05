@@ -11,3 +11,4 @@ com/chinaums/saas/test/dto/ApiResponse$ApiResponseBuilder.class
 com/chinaums/saas/test/model/SaasEnvironment.class
 com/chinaums/saas/test/controller/SaasTestController.class
 com/chinaums/saas/test/config/SaasAccountConfig.class
+com/chinaums/saas/test/dto/FileDownloadRequest.class

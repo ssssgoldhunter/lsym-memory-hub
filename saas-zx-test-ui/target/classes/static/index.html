@@ -25,6 +25,9 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#statusPanel" type="button" role="tab">🔍 交易状态查询</button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#downloadPanel" type="button" role="tab">📥 文件下载</button>
+        </li>
     </ul>
 
     <div class="tab-content mt-3" id="mainTabContent">
@@ -63,7 +66,7 @@
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <div class="card">
+                    <div class="card result-card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span>查询结果</span>
                             <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('acct-result')">复制</button>
@@ -131,7 +134,7 @@
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <div class="card">
+                    <div class="card result-card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span>查询结果</span>
                             <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('trans24-result')">复制</button>
@@ -185,7 +188,7 @@
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <div class="card">
+                    <div class="card result-card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span>查询结果</span>
                             <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('trans25-result')">复制</button>
@@ -282,7 +285,7 @@
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <div class="card">
+                    <div class="card result-card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span>查询结果</span>
                             <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('status-result')">复制</button>
@@ -295,7 +298,114 @@
             </div>
         </div>
 
-    </div>
+        <!-- ========== 文件下载 (01/02/14) ========== -->
+        <div class="tab-pane fade" id="downloadPanel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">📥 文件下载</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="download-env"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">下载类型 (bizFunc)</label>
+                                <select class="form-select" id="download-bizfunc" onchange="toggleDownloadFields()">
+                                    <option value="02" selected>02 - 电子回执获取</option>
+                                    <option value="01">01 - SFTP文件下载</option>
+                                    <option value="14">14 - 登记簿明细打印</option>
+                                </select>
+                            </div>
+
+                            <!-- bizFunc=01 -->
+                            <div id="dl-01-fields" style="display:none">
+                                <hr class="my-2">
+                                <small class="text-muted">SFTP文件下载参数</small>
+                                <div class="mb-2 mt-2">
+                                    <label class="form-label">文件传输类型</label>
+                                    <select class="form-select form-select-sm" id="dl-01-transtype">
+                                        <option value="MSG" selected>MSG - 大报文返回</option>
+                                        <option value="SFTP">SFTP - 推送到FTP服务器</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- bizFunc=02 -->
+                            <div id="dl-02-fields">
+                                <hr class="my-2">
+                                <small class="text-muted">电子回执获取参数</small>
+                                <div class="mb-2 mt-2">
+                                    <label class="form-label">中信交易流水号 (USER_SSN) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="dl-02-userssn" placeholder="例如: EMSSBPG2411084086204582341365766">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">交易日期 (USER_TRANS_DT) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="dl-02-transdt" placeholder="yyyyMMdd, 例如: 20241108">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">交易类型 (TRANS_TYPE) <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" id="dl-02-transtype">
+                                        <option value="00">00 - 资金划转</option>
+                                        <option value="03">03 - 清分入金</option>
+                                        <option value="04" selected>04 - 智能提现</option>
+                                        <option value="05">05 - 转账入金</option>
+                                        <option value="06">06 - 联机支付</option>
+                                        <option value="07">07 - 联机退款</option>
+                                        <option value="12">12 - 平台付款</option>
+                                        <option value="13">13 - 平台收款</option>
+                                        <option value="14">14 - 批量提现</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- bizFunc=14 -->
+                            <div id="dl-14-fields" style="display:none">
+                                <hr class="my-2">
+                                <small class="text-muted">登记簿明细打印参数</small>
+                                <div class="mb-2 mt-2">
+                                    <label class="form-label">用户编号 (acctNo) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="dl-14-acctno" placeholder="J开头账号, SM2加密传输">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">交易起始日期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="dl-14-startdate" placeholder="yyyyMMdd">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">交易结束日期 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="dl-14-enddate" placeholder="yyyyMMdd">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">资金方向 (可选)</label>
+                                    <select class="form-select form-select-sm" id="dl-14-flag">
+                                        <option value="">全部</option>
+                                        <option value="C">C - 贷（收入）</option>
+                                        <option value="D">D - 借（支出）</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-secondary w-100 mt-2" onclick="doDownload()" id="btn-download">
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-download"></span>
+                                📥 下载文件
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card result-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>下载状态</span>
+                        </div>
+                        <div class="card-body">
+                            <pre id="download-result" class="result-json">等待下载操作...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /tab-content -->
 
     <!-- 环境信息展示 -->
     <div class="card mt-3">
