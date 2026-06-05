@@ -261,4 +261,93 @@ public class SaasSignUtil {
 
         return body;
     }
+
+    /**
+     * 构建文件下载请求体 - bizFunc=01 SFTP文件下载
+     */
+    public static Map<String, Object> buildFileDownload01Body(String mchntId, String mchntMbrId,
+                                                               String chnlNo, String transType) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("transSsn", getTransSsn(mchntMbrId));
+        body.put("transTime", getTransTime());
+        body.put("mchntId", mchntId);
+        body.put("mchntMbrId", mchntMbrId);
+        body.put("bizFunc", "01");
+        body.put("chnlNo", chnlNo);
+        body.put("fileType", "601");
+        if (transType != null && !transType.isEmpty()) {
+            body.put("transType", transType);
+        }
+
+        Map<String, Object> reserve = new HashMap<>();
+        reserve.put("laasSsn", getLaasSsn(mchntId));
+        body.put("reserve", reserve);
+
+        return body;
+    }
+
+    /**
+     * 构建文件下载请求体 - bizFunc=02 电子回执获取
+     */
+    public static Map<String, Object> buildFileDownload02Body(String mchntId, String mchntMbrId,
+                                                               String chnlNo, String userSsn,
+                                                               String userTransDt, String transType,
+                                                               String appId, String appKey, String url) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("transSsn", getTransSsn(mchntMbrId));
+        body.put("transTime", getTransTime());
+        body.put("mchntId", mchntId);
+        body.put("mchntMbrId", mchntMbrId);
+        body.put("bizFunc", "02");
+        body.put("chnlNo", chnlNo);
+        body.put("fileType", "801");
+        body.put("transType", "MSG");
+        body.put("laasSsn", getLaasSsn(mchntId));
+        body.put("appIdBank", appId);
+        body.put("appKeyBank", appKey);
+        body.put("urlBank", url);
+
+        Map<String, Object> reserve = new HashMap<>();
+        reserve.put("laasSsn", getLaasSsn(mchntId));
+        reserve.put("USER_SSN", userSsn);
+        reserve.put("USER_TRANS_DT", userTransDt);
+        reserve.put("TRANS_TYPE", transType);
+        body.put("reserve", reserve);
+
+        return body;
+    }
+
+    /**
+     * 构建文件下载请求体 - bizFunc=14 登记簿明细打印
+     */
+    public static Map<String, Object> buildFileDownload14Body(String mchntId, String mchntMbrId,
+                                                               String chnlNo, String encryptedAcctNo,
+                                                               String transStartDate, String transEndDate,
+                                                               String flag,
+                                                               String appId, String appKey, String url) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("transSsn", getTransSsn(mchntMbrId));
+        body.put("transTime", getTransTime());
+        body.put("mchntId", mchntId);
+        body.put("mchntMbrId", mchntMbrId);
+        body.put("bizFunc", "14");
+        body.put("chnlNo", chnlNo);
+        body.put("acctNo", encryptedAcctNo);
+        body.put("transStartDate", transStartDate);
+        body.put("transEndDate", transEndDate);
+        body.put("laasSsn", getLaasSsn(mchntId));
+        body.put("appIdBank", appId);
+        body.put("appKeyBank", appKey);
+        body.put("urlBank", url);
+
+        if (flag != null && !flag.isEmpty()) {
+            body.put("flag", flag);
+        }
+
+        Map<String, Object> reserve = new HashMap<>();
+        reserve.put("laasSsn", getLaasSsn(mchntId));
+        body.put("reserve", reserve);
+
+        return body;
+    }
 }

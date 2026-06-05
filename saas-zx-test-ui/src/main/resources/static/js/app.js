@@ -24,7 +24,7 @@ async function loadEnvironments() {
 
 // 填充环境选择下拉框
 function populateEnvSelects() {
-    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env', 'transfer-env'];
+    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env', 'transfer-env', 'download-env'];
     selects.forEach(id => {
         const sel = document.getElementById(id);
         sel.innerHTML = '';
@@ -369,5 +369,104 @@ async function doTransfer() {
         document.getElementById('switch-status-badge').textContent = '已关闭';
         document.getElementById('switch-status-badge').className = 'badge bg-secondary ms-1';
         btnEl.disabled = true;
+    }
+}
+
+// ========== 文件下载功能 ==========
+
+// 切换下载类型字段
+function toggleDownloadFields() {
+    const bizFunc = document.getElementById('download-bizfunc').value;
+    document.getElementById('dl-01-fields').style.display = bizFunc === '01' ? '' : 'none';
+    document.getElementById('dl-02-fields').style.display = bizFunc === '02' ? '' : 'none';
+    document.getElementById('dl-14-fields').style.display = bizFunc === '14' ? '' : 'none';
+}
+
+// 执行文件下载（浏览器原生下载）
+async function doDownload() {
+    const resultEl = document.getElementById('download-result');
+    const spinnerEl = document.getElementById('spinner-download');
+    const btnEl = document.getElementById('btn-download');
+    const bizFunc = document.getElementById('download-bizfunc').value;
+
+    const body = {
+        envId: document.getElementById('download-env').value,
+        bizFunc: bizFunc
+    };
+
+    // 根据bizFunc收集参数
+    if (bizFunc === '01') {
+        body.transType = document.getElementById('dl-01-transtype').value;
+    } else if (bizFunc === '02') {
+        body.userSsn = document.getElementById('dl-02-userssn').value.trim();
+        body.userTransDt = document.getElementById('dl-02-transdt').value.trim();
+        body.transType02 = document.getElementById('dl-02-transtype').value;
+        if (!body.userSsn) { alert('请输入USER_SSN'); return; }
+        if (!body.userTransDt) { alert('请输入交易日期'); return; }
+    } else if (bizFunc === '14') {
+        body.acctNo = document.getElementById('dl-14-acctno').value.trim();
+        body.transStartDate = document.getElementById('dl-14-startdate').value.trim();
+        body.transEndDate = document.getElementById('dl-14-enddate').value.trim();
+        body.flag = document.getElementById('dl-14-flag').value;
+        if (!body.acctNo) { alert('请输入用户编号'); return; }
+        if (!body.transStartDate) { alert('请输入交易起始日期'); return; }
+        if (!body.transEndDate) { alert('请输入交易结束日期'); return; }
+    }
+
+    spinnerEl.classList.remove('d-none');
+    btnEl.disabled = true;
+    resultEl.textContent = '下载请求中...';
+
+    try {
+        const resp = await fetch('/api/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        const contentType = resp.headers.get('Content-Type') || '';
+
+        if (contentType.includes('application/json')) {
+            // 返回JSON说明失败或无文件
+            const json = await resp.json();
+            if (json.success) {
+                resultEl.textContent = JSON.stringify(json.data, null, 2);
+            } else {
+                resultEl.textContent = '❌ ' + json.message;
+            }
+        } else {
+            // 返回文件流 → 触发浏览器下载
+            const blob = await resp.blob();
+            const disposition = resp.headers.get('Content-Disposition');
+            let fileName = 'download_' + bizFunc;
+
+            if (disposition) {
+                // 优先解析 filename*=UTF-8''
+                const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
+                if (utf8Match) {
+                    fileName = decodeURIComponent(utf8Match[1]);
+                } else {
+                    const match = disposition.match(/filename="?([^"]+)"?/);
+                    if (match) fileName = match[1];
+                }
+            }
+
+            // 创建临时链接触发下载
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            resultEl.textContent = '✅ 下载成功!\n文件名: ' + fileName + '\n大小: ' + (blob.size / 1024).toFixed(1) + ' KB\n时间: ' + new Date().toLocaleString();
+        }
+    } catch (e) {
+        resultEl.textContent = '❌ 请求异常: ' + e.message;
+    } finally {
+        spinnerEl.classList.add('d-none');
+        btnEl.disabled = false;
     }
 }
