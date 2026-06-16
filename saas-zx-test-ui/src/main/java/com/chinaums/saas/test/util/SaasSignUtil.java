@@ -74,7 +74,7 @@ public class SaasSignUtil {
      *
      * 关键差异:
      * - registerAttr 用小写 key "registerAttr"
-     * - beginDate/endDate 格式 YYYYMMDD 补全为 YYYYMMDD000000 (14位)
+     * - beginDate/endDate/TRANS_DATE 格式 YYYYMMDD (8位, 不含时分秒)
      * - transSsn 在 reserve 内部每次查询时设置
      * - PAGE 支持外部传入
      */
@@ -82,10 +82,9 @@ public class SaasSignUtil {
                                                               String chnlNo, String encryptedAcctNo,
                                                               String transDate, String transType,
                                                               String registerAttr, int page) {
-        // beginDate/endDate 需要14位: YYYYMMDD000000
-        String beginDate = transDate + "000000";
-        // endDate 为 beginDate + 1天
-        String endDate = transDate + "235959";
+        // beginDate/endDate 为 YYYYMMDD (8位, 不含时分秒)
+        String beginDate = transDate;
+        String endDate = transDate;
 
         Map<String, Object> body = new HashMap<>();
         body.put("transTime", getTransTime());
