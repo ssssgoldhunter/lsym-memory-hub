@@ -1,5 +1,6 @@
 package com.chinaums.saas.test.controller;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.chinaums.saas.test.config.SaasAccountConfig;
 import com.chinaums.saas.test.dto.AccountQueryRequest;
@@ -8,6 +9,7 @@ import com.chinaums.saas.test.dto.FileDownloadRequest;
 import com.chinaums.saas.test.dto.TransDetailQueryRequest;
 import com.chinaums.saas.test.dto.TransStatusQueryRequest;
 import com.chinaums.saas.test.model.SaasEnvironment;
+import com.chinaums.saas.test.util.CsvExportUtil;
 import com.chinaums.saas.test.util.SaasHttpUtil;
 import com.chinaums.saas.test.util.SaasSignUtil;
 import com.chinaums.saas.test.util.SM2EncryptUtil;
@@ -19,9 +21,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -137,6 +143,55 @@ public class SaasTestController {
         } catch (Exception e) {
             log.error("25交易查询失败", e);
             return ApiResponse.fail("25交易查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 24交易CSV下载 (bizFunc=24) - 查询当天全部页, 生成CSV下载
+     */
+    @PostMapping("/download/trans-detail-24-csv")
+    public ResponseEntity<?> downloadTransDetail24Csv(@RequestBody TransDetailQueryRequest request) {
+        try {
+            SaasEnvironment env = accountConfig.getEnvironment(request.getEnvId());
+            if (request.getAcctNo() == null || request.getAcctNo().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail("请输入J账号"));
+            }
+            if (request.getTransDate() == null || request.getTransDate().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail("请选择交易日期"));
+            }
+            String encryptedAcctNo = SM2EncryptUtil.sm2EncryptHex(env.getPublicKey(), request.getAcctNo());
+
+            List<JSONObject> rows = fetchAllTransDetailRows(env, page -> SaasSignUtil.buildTransDetail24Body(
+                    env.getMchntId(), env.getMchntMbrId(), env.getChnlNo(),
+                    encryptedAcctNo, request.getTransDate(), request.getTransType(),
+                    request.getRegisterAttr(), page), "24");
+
+            return csvResponse(rows, "trans24_" + request.getTransDate());
+        } catch (Exception e) {
+            log.error("24交易CSV下载失败", e);
+            return ResponseEntity.ok(ApiResponse.fail("24交易CSV下载失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 25交易CSV下载 (bizFunc=25) - 查询当天全部页, 生成CSV下载
+     */
+    @PostMapping("/download/trans-detail-25-csv")
+    public ResponseEntity<?> downloadTransDetail25Csv(@RequestBody TransDetailQueryRequest request) {
+        try {
+            SaasEnvironment env = accountConfig.getEnvironment(request.getEnvId());
+            if (request.getTransDate() == null || request.getTransDate().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail("请选择交易日期"));
+            }
+
+            List<JSONObject> rows = fetchAllTransDetailRows(env, page -> SaasSignUtil.buildTransDetail25Body(
+                    env.getMchntId(), env.getMchntMbrId(), env.getChnlNo(),
+                    request.getTransDate(), request.getTransType(), page), "25");
+
+            return csvResponse(rows, "trans25_" + request.getTransDate());
+        } catch (Exception e) {
+            log.error("25交易CSV下载失败", e);
+            return ResponseEntity.ok(ApiResponse.fail("25交易CSV下载失败: " + e.getMessage()));
         }
     }
 
@@ -287,5 +342,95 @@ public class SaasTestController {
             log.error("文件下载失败", e);
             return ResponseEntity.ok(ApiResponse.fail("文件下载失败: " + e.getMessage()));
         }
+    }
+
+    /** 翻页安全上限, 防止银行侧异常导致死循环 */
+    private static final int MAX_TRANS_DETAIL_PAGES = 200;
+
+    /**
+     * 翻页聚合交易明细: 按页循环直到 LIST 为空, 返回所有 ROWS。
+     * bodyBuilder 接收页码返回请求体, 供 24/25 各自构造。
+     */
+    private List<JSONObject> fetchAllTransDetailRows(SaasEnvironment env,
+                                                     Function<Integer, Map<String, Object>> bodyBuilder,
+                                                     String label) throws Exception {
+        List<JSONObject> allRows = new ArrayList<>();
+        int page = 1;
+        while (page <= MAX_TRANS_DETAIL_PAGES) {
+            Map<String, Object> body = bodyBuilder.apply(page);
+            String bodyJson = JSONObject.toJSONString(body);
+            JSONObject result = SaasHttpUtil.send(env.getAppKey(), env.getAppId(), env.getUrl(), "query-trans-details", bodyJson);
+
+            String listStr = result != null ? result.getString("LIST") : null;
+            if (listStr == null || listStr.isEmpty()) {
+                // 首页无数据: 区分业务错误 vs 当天无记录
+                if (page == 1 && result != null) {
+                    String errCode = result.getString("errCode");
+                    if (errCode != null && !"D5000000".equals(errCode)) {
+                        throw new RuntimeException(label + "查询失败: errCode=" + errCode
+                                + ", errInfo=" + result.getString("errInfo"));
+                    }
+                }
+                break;
+            }
+
+            JSONObject listObj = JSONObject.parseObject(listStr);
+            collectRows(listObj, allRows);
+            page++;
+        }
+        if (page > MAX_TRANS_DETAIL_PAGES) {
+            log.warn("{} 查询达到最大页数上限 {}, 已停止翻页", label, MAX_TRANS_DETAIL_PAGES);
+        }
+        log.info("{} 查询完成, 共 {} 页 {} 条记录", label, page - 1, allRows.size());
+        return allRows;
+    }
+
+    /**
+     * 从 LIST 对象的 ROWS 字段收集行(兼容数组多条 / 对象单条 / 元素为字符串或对象)
+     */
+    private void collectRows(JSONObject listObj, List<JSONObject> sink) {
+        Object rows = listObj.get("ROWS");
+        if (rows == null) {
+            return;
+        }
+        if (rows instanceof JSONArray) {
+            JSONArray arr = (JSONArray) rows;
+            for (int i = 0; i < arr.size(); i++) {
+                addRow(arr.get(i), sink);
+            }
+        } else {
+            addRow(rows, sink);
+        }
+    }
+
+    private void addRow(Object o, List<JSONObject> sink) {
+        if (o == null) {
+            return;
+        }
+        String s = (o instanceof String) ? (String) o : o.toString();
+        if (s.isEmpty()) {
+            return;
+        }
+        sink.add(JSONObject.parseObject(s));
+    }
+
+    /**
+     * 生成 CSV 响应(UTF-8 + BOM); 无记录时返回提示
+     */
+    private ResponseEntity<?> csvResponse(List<JSONObject> rows, String namePrefix) {
+        if (rows == null || rows.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("当天无交易记录"));
+        }
+        byte[] csv = CsvExportUtil.toCsv(rows);
+        String fileName = namePrefix + "_"
+                + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".csv";
+        log.info("CSV生成成功: fileName={}, rows={}", fileName, rows.size());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8))
+                .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(csv.length)
+                .body(csv);
     }
 }

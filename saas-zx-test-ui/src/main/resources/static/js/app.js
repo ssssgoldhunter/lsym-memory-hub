@@ -174,6 +174,93 @@ function queryTransDetail25() {
     doQuery('/api/query/trans-detail-25', body, 'trans25-result', 'spinner-trans25', 'btn-trans25');
 }
 
+// ========== 交易明细CSV下载(全部页) ==========
+
+// 24交易CSV下载
+async function downloadTransDetail24Csv() {
+    const body = {
+        envId: document.getElementById('trans24-env').value,
+        transDate: formatDate(document.getElementById('trans24-date').value),
+        acctNo: document.getElementById('trans24-acct-no').value.trim(),
+        transType: document.getElementById('trans24-type').value,
+        registerAttr: document.getElementById('trans24-register-attr').value
+    };
+    if (!body.acctNo) { alert('请输入J账号'); return; }
+    if (!body.transDate) { alert('请选择日期'); return; }
+    await downloadTransCsv('/api/download/trans-detail-24-csv', body,
+        'trans24-result', 'spinner-trans24-csv', 'btn-trans24-csv', 'trans24_' + body.transDate);
+}
+
+// 25交易CSV下载
+async function downloadTransDetail25Csv() {
+    const body = {
+        envId: document.getElementById('trans25-env').value,
+        transDate: formatDate(document.getElementById('trans25-date').value),
+        transType: document.getElementById('trans25-type').value
+    };
+    if (!body.transDate) { alert('请选择日期'); return; }
+    await downloadTransCsv('/api/download/trans-detail-25-csv', body,
+        'trans25-result', 'spinner-trans25-csv', 'btn-trans25-csv', 'trans25_' + body.transDate);
+}
+
+// 通用CSV下载: JSON响应显示消息, 文件流触发浏览器下载
+async function downloadTransCsv(url, body, resultId, spinnerId, btnId, defaultPrefix) {
+    const resultEl = document.getElementById(resultId);
+    const spinnerEl = document.getElementById(spinnerId);
+    const btnEl = document.getElementById(btnId);
+
+    spinnerEl.classList.remove('d-none');
+    btnEl.disabled = true;
+    resultEl.textContent = '下载中(正在查询全部页, 请稍候)...';
+
+    try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const contentType = resp.headers.get('Content-Type') || '';
+        if (contentType.includes('application/json')) {
+            const json = await resp.json();
+            resultEl.textContent = json.success ? JSON.stringify(json.data, null, 2) : '❌ ' + json.message;
+        } else {
+            await saveBlob(resp, defaultPrefix + '.csv', resultEl);
+        }
+    } catch (e) {
+        resultEl.textContent = '❌ 请求异常: ' + e.message;
+    } finally {
+        spinnerEl.classList.add('d-none');
+        btnEl.disabled = false;
+    }
+}
+
+// 通用: 从文件流响应触发浏览器下载
+function saveBlob(resp, defaultFileName, resultEl) {
+    return resp.blob().then(blob => {
+        const disposition = resp.headers.get('Content-Disposition');
+        let fileName = defaultFileName;
+        if (disposition) {
+            const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
+            if (utf8Match) {
+                fileName = decodeURIComponent(utf8Match[1]);
+            } else {
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match) fileName = match[1];
+            }
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        resultEl.textContent = '✅ 下载成功!\n文件名: ' + fileName
+            + '\n大小: ' + (blob.size / 1024).toFixed(1) + ' KB\n时间: ' + new Date().toLocaleString();
+    });
+}
+
 // 交易状态查询 - 联动切换字段
 function toggleStatusFields() {
     const queryType = document.getElementById('status-query-type').value;
@@ -310,32 +397,7 @@ async function doDownload() {
             }
         } else {
             // 返回文件流 → 触发浏览器下载
-            const blob = await resp.blob();
-            const disposition = resp.headers.get('Content-Disposition');
-            let fileName = 'download_' + bizFunc;
-
-            if (disposition) {
-                // 优先解析 filename*=UTF-8''
-                const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/);
-                if (utf8Match) {
-                    fileName = decodeURIComponent(utf8Match[1]);
-                } else {
-                    const match = disposition.match(/filename="?([^"]+)"?/);
-                    if (match) fileName = match[1];
-                }
-            }
-
-            // 创建临时链接触发下载
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            resultEl.textContent = '✅ 下载成功!\n文件名: ' + fileName + '\n大小: ' + (blob.size / 1024).toFixed(1) + ' KB\n时间: ' + new Date().toLocaleString();
+            await saveBlob(resp, 'download_' + bizFunc, resultEl);
         }
     } catch (e) {
         resultEl.textContent = '❌ 请求异常: ' + e.message;

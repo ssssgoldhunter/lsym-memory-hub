@@ -1,4 +1,5 @@
 com/chinaums/saas/test/util/SM2EncryptUtil.class
+com/chinaums/saas/test/util/CsvExportUtil.class
 com/chinaums/saas/test/dto/ApiResponse.class
 com/chinaums/saas/test/dto/TransDetailQueryRequest.class
 com/chinaums/saas/test/SaasTestApplication.class
