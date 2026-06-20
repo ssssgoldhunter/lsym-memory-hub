@@ -1,16 +1,60 @@
 # 02 · fund-catering-consume 迁移总结（mdl → lsym）
 
 > 迁移顺序：**第 2 步（重头）** — 交易核心：扣款/冻结解冻/平台批量实收/划付/通知/日终明细 ｜ [返回总览](./README.md)
-> **lsym 现状（实测，权威见 [DIFF-ANALYSIS §5](./DIFF-ANALYSIS.md)）**：ADD 54 java/7 xml ｜ 真实 differ 97 ｜ lsym 独有(保留) 0 ｜ 主功能 扣款(A1🟠)/冻结/平台实收(A4🟡)/02划付(A2🟠 有01基础)/日终/自动提现。本文件下方早期统计数字以 DIFF-ANALYSIS 为准。
+> **lsym 现状（实测，权威见 [DIFF-ANALYSIS §5](./DIFF-ANALYSIS.md)）**：早期口径「ADD 54 java / differ 97 / 独有 0」已被下方 **§0 最终对账结论** 校正(ADD 实测 70 java),以 §0 为准。
+
+## 0. 最终对账结论（2026-06-19 实测校正,权威）
+
+> ⚠️ 本节校正 §1 与 [FEATURES-BUGS-PATHS §C](./FEATURES-BUGS-PATHS.md) 的早期口径(ADD 原记 54 java,实测 **70 java**,漏 20)。冲突以本节为准。
+> 口径:mdl `/IdeaProjects_mdl_dep/mdl/fund-catering-consume` × lsym `_dep`,`find+comm` 排除 target。
+
+### 数字校正
+- **ADD(mdl-only)= 70 java + 7 xml**(原记 54 java,漏 20);**lsym 独有源码 = 0**;共有 587、differ ~103。
+- **文档漏列 20 java**:
+  - 平台收付款/自有资金 MC-MR(5):`AbstractPlatformTransPack`、`PlatformPayTransPack`(MC)、`PlatformReceiveTransPack`(MR)、`PlatformTrans`、`PlatformTransAfter`
+  - 自有资金配置(1):`SelfFundAccountConfig`
+  - 扣款 LiteFlow 组件(7):`DeductionTrans`/`DeductionTransPack`/`DeductionTransAfter`/`DeductionTransBAfter`/`DeductionFrozenPoolSupport`/`DeductionBatchPreCreate`/`DeductionBatchPreCreatePack`
+  - 异常测试(4):`TestExceptionApi/Controller/Service/Impl`
+  - 测试类(3):`PlatformTransAfterHotAccountTest`、`PlatformTransPackAccountChangeTypeTest`、`ManualNotifyResendServiceImplTest`
+
+### 迁移约束(已定)
+- **businessCode / businessType:一律用 lsym 的,保持不变**。ADD 新代码里这俩是 passthrough(无硬编码),自动满足;MODIFY 文件三路合并时 mdl 对这俩的改动**一律跳过**(高频:TransTransferTiBatchBusinessServiceImpl 25 / TransTransferServiceImpl 20 / UnknownTransServiceImpl 18 / TransWithDrawServiceImpl 11 / TransConsumeServiceImpl 10)。
+- **lsym 独有逻辑(在共享文件,合并务必保留)**:消费退款分摊机制升级、平台批量实收卡锁(`forceUnlock`/TTL 30→10min)、平台03渠道充值批量上账、自有资金 v2(03走01/02)。
+
+### 新增业务功能 ADD(70 java + 7 xml,6 组)—— ✅ 全迁
+① 接口扣款/批量扣款(冻结+非冻结)32 ｜ ② 平台收付款/自有资金 MC-MR 6+2测试 ｜ ③ 日终交易明细 21 ｜ ④ 通知手动重发 5+1测试 ｜ ⑤ 批量下载凭证 A13 6 ｜ ⑥ 异常测试 4
+- 注:扣款「交易类型 D(冻结扣款)→ `frozenTransNo = 原始冻结流水 oldFrozenDetail.getTransNo()`;普通扣款→ 自己 transNo」的类型分支,在 ADD① 的 `DeductionTransBAfter`/`DeductionTransAfter` 里,随①迁;lsym `createFrozenDetail` 已兼容(非空 frozenTransNo 保留,不覆盖)。
+
+### 改动 differ 97 —— 最终决策(2026-06-20,方法级细比后全定)
+| # | 业务 | 决策 | 要点 |
+|:-:|---|---|---|
+| G1 | 划付02/中信划付 | 🔄 合并 | 并 mdl 02模式(`batchAddTransferTiDataInternal(mode02)`+`TRANSFER_MODE_02`+`processDetail02`双边下账/上账+校验/冻结/通知);**保 lsym 异步**(`processBatchDataAsync`/`processPayCardAsync`/`processReceiveCardBatchAsync`);集成:按 `transferMode` 分流(02→processDetail02,01→原异步) |
+| G2 | 冻结/解冻 | 🔄 合并 | 解冻链路并 mdl(`buildFailRes`+FrozenPoolHelper+orElseThrow);冻结明细:`createFrozenDetail`不改(两边一致)+`checkUnFrozenDetail`合并(并mdl类型分支 D/UF→frozenTransNo + 保lsym UF重复校验,互补)+`checkFrozenDetailTransNoRepeated`死代码忽略;`TransFrozenTServiceImpl/Mapper.updateStatusByTransNoAndCardCode` 签名 int/Boolean 统一 |
+| G3 | 平台批量实收+MQ通知 | ❌ 先不迁 | — |
+| G4 | 不明来款 | ❌ 先不迁 | — |
+| G5 | 自动提现 | ❌ 先不迁 | — |
+| G6 | 消费主流程 | ✅ 并入口 / ConsumeTransAfter不动 | 并 `transDeduction`/`transPlatformPay·Receive·Deduction`(ADD①②入口);**`ConsumeTransAfter` 不动**(两边等价,膨胀金/01/02/收款卡锁都有,差异是并发策略bugfix级) |
+| G7 | 消费退款分摊 | 🔴 保 lsym | lsym 独有算法 |
+| G8 | 各类查询 | 🔴 保 lsym | — |
+| G9 | 授信 | 🔴 保 lsym | lsym 独有授信 |
+| G10 | 账户变动明细/冻结查询 | 🔄 合并 | 并 mdl `queryTransFrozen`/`queryTransFrozenDetail`;**保 lsym 6 个增删改入口**(账户明细+划付batch add/delete/update) |
+| G11 | 充值/退款充值 | 🔴 保 lsym | `setOrgCode` 保lsym(已修对,mdl有bug);`userBusiness*`字段不加(用lsym);`lockKey`保lsym(锁内已重查余额) |
+| G12 | 配置/框架 | ⚙️ 部分 | **必须更**:`liteflow/consume.el.xml`(扣款链编排)+`ConsumeServiceUtils.deductionBaseCheck`;**按需并**:`pom.xml`(新依赖)、`FlowChainEnums`/`ConsumeConstants`/`Converter`/`TransSlot`;**保lsym/不动**:logback、bootstrap、CodeGenerator、RedisLockUtils |
+
+### 改造决策汇总
+- ✅ 并 mdl 新增:G1(02方法)、G6(transDeduction/transPlatform*入口)、G10(queryTransFrozen)、G12(liteflow.el.xml+deductionBaseCheck+按需)
+- 🔄 合并(并mdl+保lsym独有):G1(保异步)、G2(解冻链路+checkUnFrozenDetail合并)、G10(保增删改)
+- 🔴 保 lsym:G7、G8、G9、G11
+- ❌ 先不迁:G3、G4、G5
 
 ## 1. 差异统计
 | 维度 | 数量 |
 |---|---|
 | mdl 自 4 月改动 | 136 |
-| mdl 新增（文件树） | 68 |
-| lsym 独有 | 2 |
+| mdl 新增（文件树） | 70 java + 7 xml（实测,原记 54 java 漏 20,见 §0） |
+| lsym 独有（源码） | 0 |
 | 内容不同 | 103 |
-| **java ADD** | **54**｜**xml ADD** | **7** |
+| **java ADD** | **70**｜**xml ADD** | **7** |
 
 ## 2. 涉及功能主题
 扣款（冻结/非冻结）批量 + 热点账户异步入账 ｜ 批量冻结/解冻 ｜ 平台批量实收 + MQ 到账通知 ｜ 02 划付组件 ｜ 通知体系（实收/扣款/划付 + 手动重发） ｜ 日终交易明细处理（report→consume 迁移） ｜ 自动提现 ｜ 批量下载银行凭证 ｜ 附言提取

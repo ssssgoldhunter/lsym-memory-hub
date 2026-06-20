@@ -189,7 +189,8 @@ fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slh
 fund-catering-base/fund-catering-base-service/src/main/java/com/chinaums/erp/slhy/catering/base/service/impl/AlertMessageServiceImpl.java
 ```
 
-### consume（54 java + 7 xml）
+### consume（70 java + 7 xml）
+> 2026-06-19 实测校正:原记 **54 java 漏 20**(platform pack 5 + SelfFund 1 + 扣款 LiteFlow 组件 7 + TestException 4 + 测试 3),下方末尾「实测补列」段补上。
 ```
 fund-catering-consume/fund-catering-consume-api/src/main/java/com/chinaums/erp/slhy/catering/consume/api/ManualNotifyResendApi.java
 fund-catering-consume/fund-catering-consume-api/src/main/java/com/chinaums/erp/slhy/catering/consume/api/TransDailyDetailApi.java
@@ -248,6 +249,32 @@ fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/e
 fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/service/impl/TransDailyDetailProcessServiceImpl.java
 fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/service/impl/TransDeductionBatchBusinessServiceImpl.java
 fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/service/impl/TransDeductionBatchDetailServiceImpl.java
+# —— 以下为 2026-06-19 实测补列(文档原漏列的 20 java)——
+# 平台收付款/自有资金 MC-MR(5)
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/AbstractPlatformTransPack.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/PlatformPayTransPack.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/PlatformReceiveTransPack.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/PlatformTrans.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/PlatformTransAfter.java
+# 自有资金配置(1)
+fund-catering-consume/fund-catering-consume-common/src/main/java/com/chinaums/erp/slhy/catering/consume/common/config/SelfFundAccountConfig.java
+# 扣款 LiteFlow 组件(7)
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/DeductionTrans.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/DeductionTransPack.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/DeductionTransAfter.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/DeductionTransBAfter.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/DeductionFrozenPoolSupport.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/batch/DeductionBatchPreCreate.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/deduction/batch/DeductionBatchPreCreatePack.java
+# 异常测试(4)
+fund-catering-consume/fund-catering-consume-api/src/main/java/com/chinaums/erp/slhy/catering/consume/api/TestExceptionApi.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/controller/TestExceptionController.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/service/TestExceptionService.java
+fund-catering-consume/fund-catering-consume-service/src/main/java/com/chinaums/erp/slhy/catering/consume/service/impl/TestExceptionServiceImpl.java
+# 测试类(3)
+fund-catering-consume/fund-catering-consume-service/src/test/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/PlatformTransAfterHotAccountTest.java
+fund-catering-consume/fund-catering-consume-service/src/test/java/com/chinaums/erp/slhy/catering/consume/flow/component/trans/platform/PlatformTransPackAccountChangeTypeTest.java
+fund-catering-consume/fund-catering-consume-service/src/test/java/com/chinaums/erp/slhy/catering/consume/service/impl/ManualNotifyResendServiceImplTest.java
 ```
 
 ### front（13 java）
