@@ -14,6 +14,7 @@
 - **划付(Transfer→清结算)**:lsym 无对应 handler,**方案A 新建** `HttpTransferMessageConsumeHandle` + `TransferNotifyDto`(✅已落地,ResultNotifyApi 注释+TODO)。
 - **ResultNotifyApi**(清结算推送,定义于 mdl `api-modules/api-routing`/`routing-cateringzx`):lsym 全仓无,**全部注释+TODO 占位**,待其他组迁入 routing 接口后放开。
 - **共有处理器**(HttpConsume/HttpRecharge/HttpWithDraw)mdl 改动:**一律不要,按 lsym**(含 HttpWithDraw 的提现结果状态/多次失败警告/手动触发/zdy_tx)。
+  > ⚠️ **2026-06-21 实测订正**:上述 4 项 lsym **全无**(grep `zdy_tx`/通知结果状态/多次失败重试/手动触发 命中均=0)。"按 lsym"真实含义是 **用户决策不迁、维持 lsym 现状**(主动放弃这批提现增强),非"lsym 已有等价"。HttpWithDraw(383 行 differ)+WithDrawNotifyDto(mdl 4 月 +25 字段)整簇不迁。详见 §9。
 - **MessageTypeTopicEnum**:✅新增 DEDUCTION/TRANSFER 两 topic + `getTopicByTopicName` 方法;ACTUAL_RECEIPT 未加(实收走 recharge)。
 - **FrontConstants**:✅新增 3 重试常量(FIRST_SEND_TIME_KEY / RETRY_WINDOW_HOURS=1L / RETRY_DELAY_MS=5000L)。
 
@@ -86,3 +87,31 @@
 
 ## 8. 依赖
 - 前置：base、consume-api。
+
+## 9. differ 全量核查结论（2026-06-21 实测,权威）
+
+> 对 front 全部 **52 个 differ** 逐项核查(引号修正 diff + mdl 自4月净改动隔离) + 13 个 mdl-only 处置。结论:**front 无需追加任何 differ 合并**。
+
+### 9.1 differ 52 全部按 lsym 不动(分类)
+| 类别 | 数 | 代表 | 处置 |
+|---|---|---|---|
+| 配置/测试/历史分叉 | ~20 | logback/pom/bootstrap/SaasZxTest;**AccountServiceImpl(29行)实测4月未动=历史分叉** | 跳过 |
+| router+小差异(1-10行) | ~18 | 8 个 Router(各2行)、各 Api/Req/Res/Service | 空格/import/版本,按 lsym |
+| 已 commit 后剩余 | ~7 | HttpRecharge/HttpTransfer/HttpDeduction/ZxTransTransfer/MessageTypeTopicEnum/FrontConstants | 核心已迁(d94e217b),剩余按 lsym |
+| 共有处理器 | 2 | HttpConsume(66)、HttpWithDraw(383) | 按 lsym(提现增强不迁,见9.3) |
+
+### 9.2 E 类 4 项逐项结论(均不迁)
+- **ZxAccountHandle**(143行,mdl4月+60/-35):实质=bugfix①(报错带银行详情)+bugfix②(开户传 sigctFlg/agrmNum),lsym 已有等价;其余 IDE 格式化噪音 → 不迁
+- **BasTransTransferReq**(+4 字段 bizFunc/fundType/dealType/bankEAccountId):bizFunc lsym 已在 ZxTransTransferHandle 硬编码 2041/2042 对齐(d94e217b);bankEAccountId lsym 用自有资金池配置(非字段) → 不迁
+- **SAASConfig**(+一批 `/****MDL**/` 商户配置 appId_mc/merchantId/privateKey/publicKey/appKey):🔴 **绝对不迁**——mdl 环境 ZX 商户号+密钥,覆盖会打坏 lsym ZX 渠道。与 application-local.yml 同类
+- **ConsumeNotifyDto**(-4 字段 bankSsn/bankAccNo/bankAccName/bankRemark):mdl 删银行到账字段精简,lsym 保留 → 不迁
+
+### 9.3 13 个 mdl-only 处置
+- **2 DTO 不迁,改用 lsym 现有**(用户 2026-06-21 决策):`ActualReceiptNotifyDto`、`WithDrawNotifyItemDto` —— consume `ManualNotifyResendServiceImpl` 引用它们,需改用 lsym 现有通知对象(见 9.4 / 02-consume.md)
+- **11 个有意跳过**:网商/WS门面簇(`FrontTransWSFacadeApi`/`FrontTransWsFacadeController`/`WsChannelConfig`/`WsChannelService`/`WebUtils`/`BatchCreateReq`/`ws`目录,lsym 不做网商渠道,全仓0引用)、`HttpActualReceiptMessageConsumeHandle`(走 recharge,仅注释引用)、`application-local.yml`(活密钥)、`ActualReceiptNotifyTest`(测试)
+
+### 9.4 🔴 编译断链(跨 consume)
+consume `ManualNotifyResendServiceImpl`(commit bbe17ffe)真实 import 了未迁的 `front.message.ActualReceiptNotifyDto`(行35/243/263)、`WithDrawNotifyItemDto`(行39/202) → **当前 consume/front 编译不过**。修法:改用 lsym 现有通知对象(lsym `front/message` 现有 `RechargeNotifyDto`/`WithDrawNotifyDto`/`ConsumeNotifyDto`/`TransferNotifyDto`),属 consume 侧改造。
+
+### 9.5 front 最终状态
+✅ 已 commit(d94e217b)8 文件正确 ｜ ✅ 52 differ 全部归类,无需追加合并 ｜ ⏭️ 13 mdl-only = 2 DTO 改用 lsym 现有 + 11 跳过 ｜ 🔴 唯一待落地 = consume ManualNotifyResendServiceImpl 改 DTO ｜ ⏭️ 编译验证未做(待 consume DTO 改造后)

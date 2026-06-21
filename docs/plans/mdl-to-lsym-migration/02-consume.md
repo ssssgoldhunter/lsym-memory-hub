@@ -21,7 +21,7 @@
 - **businessCode / businessType:一律用 lsym 的,保持不变**。ADD 新代码里这俩是 passthrough(无硬编码),自动满足;MODIFY 文件三路合并时 mdl 对这俩的改动**一律跳过**(高频:TransTransferTiBatchBusinessServiceImpl 25 / TransTransferServiceImpl 20 / UnknownTransServiceImpl 18 / TransWithDrawServiceImpl 11 / TransConsumeServiceImpl 10)。
 - **lsym 独有逻辑(在共享文件,合并务必保留)**:消费退款分摊机制升级、平台批量实收卡锁(`forceUnlock`/TTL 30→10min)、平台03渠道充值批量上账、自有资金 v2(03走01/02)。
 
-### 新增业务功能 ADD(70 java + 7 xml,6 组)—— ✅ 全迁
+### 新增业务功能 ADD(70 java + 7 xml,6 组)—— ✅ 全迁(⚠️2026-06-21复核订正:③日终明细21个**不迁**,用户决策;实际已迁①②④⑤⑥。详见 §9)
 ① 接口扣款/批量扣款(冻结+非冻结)32 ｜ ② 平台收付款/自有资金 MC-MR 6+2测试 ｜ ③ 日终交易明细 21 ｜ ④ 通知手动重发 5+1测试 ｜ ⑤ 批量下载凭证 A13 6 ｜ ⑥ 异常测试 4
 - 注:扣款「交易类型 D(冻结扣款)→ `frozenTransNo = 原始冻结流水 oldFrozenDetail.getTransNo()`;普通扣款→ 自己 transNo」的类型分支,在 ADD① 的 `DeductionTransBAfter`/`DeductionTransAfter` 里,随①迁;lsym `createFrozenDetail` 已兼容(非空 frozenTransNo 保留,不覆盖)。
 
@@ -111,3 +111,29 @@
 
 ## 8. 依赖
 - 前置：base。后续 front/management/report/task/web 依赖 consume。
+
+## 9. 2026-06-21 复核订正(实测,权威)
+
+> 对 §0 结论逐项复核(only-in-mdl + mdl4月净改动 + lsym工作区/commit对照)。冲突以本节为准。
+
+### 9.1 ADD 6 组复核
+- ①扣款32 ②平台6 ④通知5 ⑤A13 ⑥异常4 → ✅ 已迁(工作区+commit)
+- **③日终明细21(TransDaily*)→ 不迁**(用户 2026-06-21 决策,功能不要)。§0"✅全迁"据此订正
+- ②④的 3 个测试类(`PlatformTransAfterHotAccountTest`/`PackAccountChangeTypeTest`/`ManualNotifyResendServiceImplTest`) lsym 有同名未跟改,低优
+
+### 9.2 differ G1-G12 复核
+| G项 | §0决策 | 复核实际 | 订正 |
+|---|---|---|---|
+| G1 划付02 | 🔄合并 | `TransTransferTiBatchBusinessServiceImpl` 已改 | ✅ |
+| **G2 冻结** | 🔄合并 | 工作区改了 `FrozenTrans`/`UnFrozenTrans*`/`TransFrozenServiceImpl`;但 **`TransFrozenTMapper`(签名 Boolean→int)+`TransFrozenTServiceImpl`(适配)+`TransAcctFrozenChangeDetailTServiceImpl.checkUnFrozenDetail`(扣款 D/UF→frozenTransNo 分支) 漏合** | 🔴 需补合(工作区改造硬配套) |
+| G3/G4/G5 | ❌先不迁 | 未动 | ✅按表 |
+| G6 消费 | ✅并入口/`ConsumeTransAfter`不动 | 已改;`ConsumeTransAfter` 正确未动 | ✅ |
+| G7-9/G11 | 🔴保lsym | 未动 | ✅按表 |
+| **G10 冻结查询** | 🔄合并 queryTransFrozen/Detail | **漏合**:lsym `TransAccountApi` 无 `queryTransFrozen`/`queryTransFrozenDetail`(虽有 `FrozenQueryPack` 链 + DTO 齐) | 🔴 需补入口 |
+| **G12 配置** | ⚙️部分(el.xml必须更) | `consume.el.xml`✅(含3新链)+`ConsumeServiceUtils`✅;但 **`FlowChainEnums` 缺 `chainDeduction`/`chainPlatformPay`/`chainReceive` 3 枚举**(el.xml 已用) | 🔴 需补枚举 |
+
+### 9.3 编译断链(跨 front)
+`ManualNotifyResendServiceImpl`(bbe17ffe) import 未迁的 `front.message.ActualReceiptNotifyDto`/`WithDrawNotifyItemDto` → 改用 lsym 现有 `RechargeNotifyDto`/`WithDrawNotifyDto`(**不改 lsym 通知 DTO**,装不下字段不设)。
+
+### 9.4 consume 收口待办(6 项)
+1. 订正本文档 2. 补合 G2 3. 合并 G10 4. 补 G12 枚举 5. DTO 改造 6. 编译验证
