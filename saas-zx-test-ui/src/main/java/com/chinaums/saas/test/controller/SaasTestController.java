@@ -6,6 +6,8 @@ import com.chinaums.saas.test.config.SaasAccountConfig;
 import com.chinaums.saas.test.dto.AccountQueryRequest;
 import com.chinaums.saas.test.dto.ApiResponse;
 import com.chinaums.saas.test.dto.FileDownloadRequest;
+import com.chinaums.saas.test.dto.RefundRequest;
+import com.chinaums.saas.test.dto.TransferRequest;
 import com.chinaums.saas.test.dto.TransDetailQueryRequest;
 import com.chinaums.saas.test.dto.TransStatusQueryRequest;
 import com.chinaums.saas.test.model.SaasEnvironment;
@@ -341,6 +343,75 @@ public class SaasTestController {
         } catch (Exception e) {
             log.error("文件下载失败", e);
             return ResponseEntity.ok(ApiResponse.fail("文件下载失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 退款 (bizFunc=21, appName="refund")
+     * 发送全额退款请求到银行接口，返回银行原始响应
+     */
+    @PostMapping("/refund")
+    public ApiResponse<JSONObject> refund(@RequestBody RefundRequest request) {
+        try {
+            SaasEnvironment env = accountConfig.getEnvironment(request.getEnvId());
+
+            Map<String, Object> body = SaasSignUtil.buildRefundBody(
+                    env.getMchntId(), env.getMchntMbrId(), env.getChnlNo(),
+                    env.getAppId(), env.getAppKey(), env.getUrl(),
+                    request.getOriBussId(), request.getOriBussSubId(),
+                    request.getOriUserSsn(), request.getOriUserTransDt(),
+                    request.getTransDt(), request.getTransTm(),
+                    request.getOriUserDId(), request.getOriUserDNm(),
+                    request.getOriUserCId(), request.getOriUserCNm(),
+                    request.getOriUserCAmt(), request.getFundTp()
+            );
+
+            String bodyJson = JSONObject.toJSONString(body);
+            log.info("退款请求 body: {}", bodyJson);
+
+            JSONObject result = SaasHttpUtil.send(env.getAppKey(), env.getAppId(), env.getUrl(), "refund", bodyJson);
+            log.info("退款响应: {}", result);
+
+            return ApiResponse.ok(result, result != null ? result.toJSONString() : null);
+        } catch (Exception e) {
+            log.error("退款失败", e);
+            return ApiResponse.fail("退款失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 转账 (bizFunc=27, appName="transfer")
+     * 参考 SaasZxTest#transferNew
+     */
+    @PostMapping("/transfer")
+    public ApiResponse<JSONObject> transfer(@RequestBody TransferRequest request) {
+        try {
+            SaasEnvironment env = accountConfig.getEnvironment(request.getEnvId());
+
+            // SM2 加密付款方/收款方账号
+            String outAcctNoEnc = SM2EncryptUtil.sm2EncryptHex(env.getPublicKey(), request.getOutAcctNo());
+            String inAcctNoEnc = SM2EncryptUtil.sm2EncryptHex(env.getPublicKey(), request.getInAcctNo());
+
+            Map<String, Object> body = SaasSignUtil.buildTransferBody(
+                    env.getMchntId(), env.getMchntMbrId(), env.getChnlNo(),
+                    env.getAppId(), env.getAppKey(), env.getUrl(),
+                    outAcctNoEnc, inAcctNoEnc,
+                    request.getOutAcctNm(), request.getInAcctNm(),
+                    request.getTransAmt(), request.getBussId(), request.getBussSubId(),
+                    request.getTransDt(), request.getTransTm(),
+                    request.getFundTp(), request.getMemo()
+            );
+
+            String bodyJson = JSONObject.toJSONString(body);
+            log.info("转账请求 body: {}", bodyJson);
+
+            JSONObject result = SaasHttpUtil.send(env.getAppKey(), env.getAppId(), env.getUrl(), "transfer", bodyJson);
+            log.info("转账响应: {}", result);
+
+            return ApiResponse.ok(result, result != null ? result.toJSONString() : null);
+        } catch (Exception e) {
+            log.error("转账失败", e);
+            return ApiResponse.fail("转账失败: " + e.getMessage());
         }
     }
 

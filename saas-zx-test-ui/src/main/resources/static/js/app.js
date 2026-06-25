@@ -24,7 +24,7 @@ async function loadEnvironments() {
 
 // 填充环境选择下拉框
 function populateEnvSelects() {
-    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env', 'download-env'];
+    const selects = ['acct-env', 'trans24-env', 'trans25-env', 'status-env', 'download-env', 'refund-env'];
     selects.forEach(id => {
         const sel = document.getElementById(id);
         sel.innerHTML = '';
@@ -78,6 +78,7 @@ function setDefaultDate() {
     document.getElementById('trans24-date').value = today;
     document.getElementById('trans25-date').value = today;
     document.getElementById('status-date').value = today;
+    document.getElementById('refund-transdt').value = today;
 }
 
 // 格式化日期为 YYYYMMDD
@@ -405,4 +406,225 @@ async function doDownload() {
         spinnerEl.classList.add('d-none');
         btnEl.disabled = false;
     }
+}
+
+// ========== 退款 (bizFunc=21) ==========
+let refundPendingBody = null;
+
+function toggleRefundBtn() {
+    const enabled = document.getElementById('refund-switch').checked;
+    document.getElementById('btn-refund').disabled = !enabled;
+}
+
+function toggleRefundFields() {
+    const oriType = document.getElementById('refund-ori-type').value;
+    document.getElementById('refund-ori-buss').style.display = oriType === 'buss' ? '' : 'none';
+    document.getElementById('refund-ori-ssn').style.display = oriType === 'ssn' ? '' : 'none';
+}
+
+function queryRefund() {
+    const oriType = document.getElementById('refund-ori-type').value;
+    const dateVal = document.getElementById('refund-transdt').value;
+
+    const body = {
+        envId: document.getElementById('refund-env').value,
+        fundTp: document.getElementById('refund-fundtp').value,
+        transDt: dateVal ? dateVal.replace(/-/g, '') : '',
+        transTm: document.getElementById('refund-transtm').value.trim(),
+        oriUserDId: document.getElementById('refund-oriuserdid').value.trim(),
+        oriUserDNm: document.getElementById('refund-oriuserdnm').value.trim(),
+        oriUserCId: document.getElementById('refund-oriusercid').value.trim(),
+        oriUserCNm: document.getElementById('refund-oriusercnm').value.trim(),
+        oriUserCAmt: document.getElementById('refund-amt').value.trim()
+    };
+
+    if (oriType === 'buss') {
+        body.oriBussId = document.getElementById('refund-oribussid').value.trim();
+        body.oriBussSubId = document.getElementById('refund-oribussubid').value.trim();
+        body.oriUserSsn = '';
+        if (!body.oriBussId) { alert('请输入 ORI_BUSS_ID'); return; }
+    } else {
+        body.oriUserSsn = document.getElementById('refund-oriuserssn').value.trim();
+        body.oriBussId = '';
+        body.oriBussSubId = '';
+        if (!body.oriUserSsn) { alert('请输入 ORI_USER_SSN'); return; }
+    }
+    body.oriUserTransDt = document.getElementById('refund-oriusertransdt').value.trim();
+    if (!body.oriUserTransDt) { alert('请输入 ORI_USER_TRANS_DT'); return; }
+
+    if (!body.transDt) { alert('请选择退款日期'); return; }
+    if (!body.transTm) { alert('请输入退款时间'); return; }
+    if (!body.oriUserDId || !body.oriUserDNm || !body.oriUserCId || !body.oriUserCNm) {
+        alert('请填写完整的参与方信息');
+        return;
+    }
+    if (!body.oriUserCAmt) { alert('请输入退款金额'); return; }
+
+    // 保存数据，显示确认弹窗
+    refundPendingBody = body;
+
+    const envName = environments.find(e => e.id === body.envId)?.name || body.envId;
+    const oriLabel = oriType === 'buss'
+        ? 'ORI_BUSS_ID: ' + body.oriBussId + (body.oriBussSubId ? '<br>ORI_BUSS_SUB_ID: ' + body.oriBussSubId : '')
+        : 'ORI_USER_SSN: ' + body.oriUserSsn;
+
+    const rows = [
+        ['环境', envName],
+        ['资金类型 (FUND_TP)', body.fundTp],
+        ['原支付标识', oriLabel],
+        ['原支付中信侧日期', body.oriUserTransDt],
+        ['退款日期', body.transDt],
+        ['退款时间', body.transTm],
+        ['付款方 (ORI_USER_D)', body.oriUserDId + ' / ' + body.oriUserDNm],
+        ['收款方 (ORI_USER_C)', body.oriUserCId + ' / ' + body.oriUserCNm],
+        ['<span class="text-danger fw-bold">退款金额</span>', '<span class="text-danger fw-bold">' + body.oriUserCAmt + ' 分</span>']
+    ];
+
+    const tbody = document.querySelector('#refund-confirm-table tbody');
+    tbody.innerHTML = rows.map(r =>
+        '<tr><td style="width:180px" class="text-muted">' + r[0] + '</td><td>' + r[1] + '</td></tr>'
+    ).join('');
+
+    const modal = new bootstrap.Modal(document.getElementById('refundConfirmModal'));
+    modal.show();
+}
+
+function doRefund() {
+    if (!refundPendingBody) return;
+
+    const resultEl = document.getElementById('refund-result');
+    const spinnerEl = document.getElementById('spinner-refund');
+    const btnEl = document.getElementById('btn-refund');
+    const modalSpinner = document.getElementById('spinner-refund-confirm');
+    const confirmBtn = document.getElementById('refund-confirm-btn');
+
+    modalSpinner.classList.remove('d-none');
+    confirmBtn.disabled = true;
+    spinnerEl.classList.remove('d-none');
+    btnEl.disabled = true;
+    resultEl.textContent = '退款请求发送中...';
+
+    fetch('/api/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(refundPendingBody)
+    }).then(resp => resp.json()).then(json => {
+        modalSpinner.classList.add('d-none');
+        confirmBtn.disabled = false;
+        // 关闭弹窗
+        const modalEl = document.getElementById('refundConfirmModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        if (json.success) {
+            resultEl.textContent = JSON.stringify(json.data, null, 2);
+        } else {
+            resultEl.textContent = '❌ ' + json.message;
+        }
+    }).catch(e => {
+        modalSpinner.classList.add('d-none');
+        confirmBtn.disabled = false;
+        resultEl.textContent = '❌ 请求异常: ' + e.message;
+    }).finally(() => {
+        spinnerEl.classList.add('d-none');
+        btnEl.disabled = false;
+    });
+}
+
+// ========== 转账 (bizFunc=27) ==========
+let transferPendingBody = null;
+
+function toggleTransferBtn() {
+    const enabled = document.getElementById('transfer-switch').checked;
+    document.getElementById('btn-transfer').disabled = !enabled;
+}
+
+function queryTransfer() {
+    const dateVal = document.getElementById('transfer-transdt').value;
+    const body = {
+        envId: document.getElementById('transfer-env').value,
+        fundTp: document.getElementById('transfer-fundtp').value,
+        outAcctNo: document.getElementById('transfer-outacct').value.trim(),
+        outAcctNm: document.getElementById('transfer-outnm').value.trim(),
+        inAcctNo: document.getElementById('transfer-inacct').value.trim(),
+        inAcctNm: document.getElementById('transfer-innm').value.trim(),
+        transAmt: document.getElementById('transfer-amt').value.trim(),
+        bussId: document.getElementById('transfer-bussid').value.trim(),
+        bussSubId: document.getElementById('transfer-bussubid').value.trim(),
+        transDt: dateVal ? dateVal.replace(/-/g, '') : '',
+        transTm: document.getElementById('transfer-transtm').value.trim(),
+        memo: document.getElementById('transfer-memo').value.trim()
+    };
+
+    if (!body.outAcctNo || !body.outAcctNm) { alert('请填写付款方信息'); return; }
+    if (!body.inAcctNo || !body.inAcctNm) { alert('请填写收款方信息'); return; }
+    if (!body.transAmt) { alert('请输入转账金额'); return; }
+    if (!body.bussId) { alert('请输入商户订单号 BUSS_ID'); return; }
+    if (!body.transDt) { alert('请选择交易日期'); return; }
+    if (!body.transTm) { alert('请输入交易时间'); return; }
+
+    transferPendingBody = body;
+
+    const envName = environments.find(e => e.id === body.envId)?.name || body.envId;
+    const rows = [
+        ['环境', envName],
+        ['资金类型 (FUND_TP)', body.fundTp],
+        ['付款方', body.outAcctNo + ' / ' + body.outAcctNm],
+        ['收款方', body.inAcctNo + ' / ' + body.inAcctNm],
+        ['<span class="text-danger fw-bold">转账金额</span>', '<span class="text-danger fw-bold">' + body.transAmt + ' 分</span>'],
+        ['BUSS_ID', body.bussId],
+        ['BUSS_SUB_ID', body.bussSubId || '-'],
+        ['交易日期', body.transDt],
+        ['交易时间', body.transTm],
+        ['MEMO', body.memo || '失败交易退款']
+    ];
+
+    const tbody = document.querySelector('#transfer-confirm-table tbody');
+    tbody.innerHTML = rows.map(r =>
+        '<tr><td style="width:160px" class="text-muted">' + r[0] + '</td><td>' + r[1] + '</td></tr>'
+    ).join('');
+
+    const modal = new bootstrap.Modal(document.getElementById('transferConfirmModal'));
+    modal.show();
+}
+
+function doTransfer() {
+    if (!transferPendingBody) return;
+
+    const modalSpinner = document.getElementById('spinner-transfer-confirm');
+    const confirmBtn = document.getElementById('transfer-confirm-btn');
+    const spinnerEl = document.getElementById('spinner-transfer');
+    const btnEl = document.getElementById('btn-transfer');
+    const resultEl = document.getElementById('transfer-result');
+
+    modalSpinner.classList.remove('d-none');
+    confirmBtn.disabled = true;
+    spinnerEl.classList.remove('d-none');
+    btnEl.disabled = true;
+    resultEl.textContent = '转账请求发送中...';
+
+    fetch('/api/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transferPendingBody)
+    }).then(resp => resp.json()).then(json => {
+        modalSpinner.classList.add('d-none');
+        confirmBtn.disabled = false;
+        const modalEl = document.getElementById('transferConfirmModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        if (json.success) {
+            resultEl.textContent = JSON.stringify(json.data, null, 2);
+        } else {
+            resultEl.textContent = '❌ ' + json.message;
+        }
+    }).catch(e => {
+        modalSpinner.classList.add('d-none');
+        confirmBtn.disabled = false;
+        resultEl.textContent = '❌ 请求异常: ' + e.message;
+    }).finally(() => {
+        spinnerEl.classList.add('d-none');
+        btnEl.disabled = false;
+    });
 }

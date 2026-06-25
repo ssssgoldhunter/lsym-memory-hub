@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS ZX 测试工具</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/style.css?v=20260616a" rel="stylesheet">
+    <link href="css/style.css?v=20260623a" rel="stylesheet">
 </head>
 <body>
 <div class="container-fluid py-3">
@@ -27,6 +27,12 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#downloadPanel" type="button" role="tab">📥 文件下载</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="refund-tab" data-bs-toggle="tab" data-bs-target="#refundPanel" type="button" role="tab">💸 退款 (21)</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="transfer-tab" data-bs-toggle="tab" data-bs-target="#transferPanel" type="button" role="tab">💹 转账 (27)</button>
         </li>
     </ul>
 
@@ -413,6 +419,207 @@
             </div>
         </div>
 
+        <!-- ========== 退款 (21) ========== -->
+        <div class="tab-pane fade" id="refundPanel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">退款参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="refund-env"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">FUND_TP (资金类型)</label>
+                                <select class="form-select" id="refund-fundtp">
+                                    <option value="001002" selected>001002 - 测试环境</option>
+                                    <option value="011002">011002 - 生产环境</option>
+                                </select>
+                                <div class="form-text">测试=001002, 生产=011002</div>
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">原支付信息 (二选一)</small>
+                            <div class="mb-2 mt-2">
+                                <label class="form-label">原支付标识方式</label>
+                                <select class="form-select form-select-sm" id="refund-ori-type" onchange="toggleRefundFields()">
+                                    <option value="buss" selected>商户订单号 (ORI_BUSS_ID)</option>
+                                    <option value="ssn">中信侧流水号 (ORI_USER_SSN)</option>
+                                </select>
+                            </div>
+
+                            <!-- BUSS_ID 模式 -->
+                            <div id="refund-ori-buss">
+                                <div class="mb-2">
+                                    <label class="form-label">ORI_BUSS_ID (原支付商户订单号) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="refund-oribussid" placeholder="必填">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">ORI_BUSS_SUB_ID (原支付商户子订单号)</label>
+                                    <input type="text" class="form-control form-control-sm" id="refund-oribussubid" placeholder="可选, 例如: xxx104">
+                                </div>
+                            </div>
+
+                            <!-- USER_SSN 模式 -->
+                            <div id="refund-ori-ssn" style="display:none">
+                                <div class="mb-2">
+                                    <label class="form-label">ORI_USER_SSN (原支付中信侧流水号) <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="refund-oriuserssn" placeholder="必填, 例如: EMSSBPG2606235844374776860649472">
+                                </div>
+                            </div>
+
+                            <!-- 两种模式都需要的字段 -->
+                            <div class="mb-2">
+                                <label class="form-label">ORI_USER_TRANS_DT (原支付中信侧交易日期) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-oriusertransdt" placeholder="必填, yyyyMMdd">
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">退款交易信息</small>
+                            <div class="mb-2 mt-2">
+                                <label class="form-label">TRANS_DT (退款日期) <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-sm" id="refund-transdt">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">TRANS_TM (退款时间) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-transtm" placeholder="HHmmss, 例如: 164012">
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">原支付交易参与方信息</small>
+                            <div class="mb-2 mt-2">
+                                <label class="form-label">ORI_USER_D_ID (付款方银行用户编号) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-oriuserdid" placeholder="J开头">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">ORI_USER_D_NM (付款方名称) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-oriuserdnm" placeholder="例如: 黄大最">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">ORI_USER_C_ID (收款方银行用户编号) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-oriusercid" placeholder="J开头">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">ORI_USER_C_NM (收款方名称) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-oriusercnm" placeholder="例如: XX公司">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">ORI_USER_C_AMT (退款金额/分) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="refund-amt" placeholder="单位: 分, 例如: 100">
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="refund-switch" onchange="toggleRefundBtn()">
+                                <label class="form-check-label text-danger" for="refund-switch">☑ 确认参数无误，启用退款</label>
+                            </div>
+                            <button class="btn btn-danger w-100" onclick="queryRefund()" id="btn-refund" disabled>
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-refund"></span>
+                                💸 发起退款
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card result-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>退款结果</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('refund-result')">复制</button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="refund-result" class="result-json">等待发起退款...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 转账 (27) ========== -->
+        <div class="tab-pane fade" id="transferPanel" role="tabpanel">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">转账参数</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">环境选择</label>
+                                <select class="form-select" id="transfer-env"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">FUND_TP (资金类型)</label>
+                                <select class="form-select" id="transfer-fundtp">
+                                    <option value="001002" selected>001002 - 测试环境</option>
+                                    <option value="011002">011002 - 生产环境</option>
+                                </select>
+                                <div class="form-text">测试=001002, 生产=011002</div>
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">付款方信息</small>
+                            <div class="mb-2 mt-2">
+                                <label class="form-label">付费方J账号 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-outacct" placeholder="J开头, 例如: J01016300000552">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">付费方名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-outnm" placeholder="例如: 安徽汇旺餐饮管理有限公司">
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">收款方信息</small>
+                            <div class="mb-2 mt-2">
+                                <label class="form-label">收款方J账号 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-inacct" placeholder="J开头, 例如: J01016300043403">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">收款方名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-innm" placeholder="例如: 孙钰惠">
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">交易信息</small>
+                            <div class="mb-2 mt-2">
+                                <label class="form-label">转账金额/分 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-amt" placeholder="单位: 分, 例如: 186304">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">BUSS_ID (商户订单号) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-bussid" placeholder="例如: 2025011515051344103">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">BUSS_SUB_ID (商户子订单号)</label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-bussubid" placeholder="可选, 例如: 2025011515051344103104R">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">交易日期 <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-sm" id="transfer-transdt">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">交易时间 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-transtm" placeholder="HHmmss, 例如: 163012">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">MEMO (备注)</label>
+                                <input type="text" class="form-control form-control-sm" id="transfer-memo" placeholder="默认: 失败交易退款">
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="transfer-switch" onchange="toggleTransferBtn()">
+                                <label class="form-check-label text-danger" for="transfer-switch">☑ 确认参数无误，启用转账</label>
+                            </div>
+                            <button class="btn btn-info w-100" onclick="queryTransfer()" id="btn-transfer" disabled>
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner-transfer"></span>
+                                💹 发起转账
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card result-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>转账结果</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyResult('transfer-result')">复制</button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="transfer-result" class="result-json">等待发起转账...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div><!-- /tab-content -->
 
     <!-- 环境信息展示 -->
@@ -426,7 +633,63 @@
     </div>
 </div>
 
+<!-- 退款确认弹窗 -->
+<div class="modal fade" id="refundConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">⚠️ 退款确认</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger fw-bold">请仔细核对以下退款信息，确认无误后再提交：</p>
+                <table class="table table-bordered table-sm" id="refund-confirm-table">
+                    <tbody></tbody>
+                </table>
+                <div class="alert alert-warning py-2 mb-0">
+                    <small>⚠️ 退款操作不可撤销，请确认金额和账户信息正确。</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="refund-confirm-btn" onclick="doRefund()">
+                    <span class="spinner-border spinner-border-sm d-none" id="spinner-refund-confirm"></span>
+                    ✅ 确认退款
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 转账确认弹窗 -->
+<div class="modal fade" id="transferConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">⚠️ 转账确认</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger fw-bold">请仔细核对以下转账信息，确认无误后再提交：</p>
+                <table class="table table-bordered table-sm" id="transfer-confirm-table">
+                    <tbody></tbody>
+                </table>
+                <div class="alert alert-warning py-2 mb-0">
+                    <small>⚠️ 转账操作不可撤销，请确认金额和账户信息正确。</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info" id="transfer-confirm-btn" onclick="doTransfer()">
+                    <span class="spinner-border spinner-border-sm d-none" id="spinner-transfer-confirm"></span>
+                    ✅ 确认转账
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/app.js?v=20260616a"></script>
+<script src="js/app.js?v=20260623a"></script>
 </body>
 </html>

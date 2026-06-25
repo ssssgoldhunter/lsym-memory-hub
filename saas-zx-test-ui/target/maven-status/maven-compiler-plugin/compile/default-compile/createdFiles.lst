@@ -4,6 +4,7 @@ com/chinaums/saas/test/dto/ApiResponse.class
 com/chinaums/saas/test/dto/TransDetailQueryRequest.class
 com/chinaums/saas/test/SaasTestApplication.class
 com/chinaums/saas/test/dto/TransStatusQueryRequest.class
+com/chinaums/saas/test/dto/TransferRequest.class
 com/chinaums/saas/test/model/SaasEnvironment$SaasEnvironmentBuilder.class
 com/chinaums/saas/test/dto/AccountQueryRequest.class
 com/chinaums/saas/test/util/SaasSignUtil.class
@@ -12,4 +13,5 @@ com/chinaums/saas/test/dto/ApiResponse$ApiResponseBuilder.class
 com/chinaums/saas/test/model/SaasEnvironment.class
 com/chinaums/saas/test/controller/SaasTestController.class
 com/chinaums/saas/test/config/SaasAccountConfig.class
+com/chinaums/saas/test/dto/RefundRequest.class
 com/chinaums/saas/test/dto/FileDownloadRequest.class

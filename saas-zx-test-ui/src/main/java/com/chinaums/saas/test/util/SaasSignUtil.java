@@ -300,4 +300,121 @@ public class SaasSignUtil {
 
         return body;
     }
+
+    /** 生成唯一退款订单号 (14位: yyyyMMddHHmmss + 3位随机) */
+    private static String generateRefundBussId() {
+        String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        int rand = (int) (Math.random() * 900) + 100;
+        return timestamp + rand;
+    }
+
+    /** 生成退款子订单号 (在 REFUND_BUSS_ID 后加 "R") */
+    private static String generateRefundBussSubId(String refundBussId) {
+        return refundBussId + "R";
+    }
+
+    /**
+     * 构建退款请求体 (bizFunc=21, appName="refund")
+     * 参考 SaasZxTest#refund
+     */
+    public static Map<String, Object> buildRefundBody(String mchntId, String mchntMbrId,
+                                                       String chnlNo, String appId, String appKey, String url,
+                                                       String oriBussId, String oriBussSubId,
+                                                       String oriUserSsn, String oriUserTransDt,
+                                                       String transDt, String transTm,
+                                                       String oriUserDId, String oriUserDNm,
+                                                       String oriUserCId, String oriUserCNm,
+                                                       String oriUserCAmt, String fundTp) {
+        String refundBussId = generateRefundBussId();
+        String refundBussSubId = generateRefundBussSubId(refundBussId);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("refundBussId", refundBussId);
+        body.put("refundBussSubId", refundBussSubId);
+        body.put("transSsn", getTransSsn(mchntMbrId));
+        body.put("transTime", getTransTime());
+        body.put("mchntId", mchntId);
+        body.put("mchntMbrId", mchntMbrId);
+        body.put("bizFunc", "21");
+        body.put("chnlNo", chnlNo);
+        body.put("laasSsn", getLaasSsn(mchntId));
+        body.put("appIdBank", appId);
+        body.put("appKeyBank", appKey);
+        body.put("urlBank", url);
+
+        // reserve 中的字段使用大写驼峰命名，与银行接口约定一致
+        Map<String, Object> reserve = new HashMap<>();
+        reserve.put("REFUND_BUSS_ID", refundBussId);
+        reserve.put("REFUND_BUSS_SUB_ID", refundBussSubId);
+        if (oriBussId != null && !oriBussId.isEmpty()) {
+            reserve.put("ORI_BUSS_ID", oriBussId);
+            if (oriBussSubId != null && !oriBussSubId.isEmpty()) {
+                reserve.put("ORI_BUSS_SUB_ID", oriBussSubId);
+            }
+        }
+        if (oriUserSsn != null && !oriUserSsn.isEmpty()) {
+            reserve.put("ORI_USER_SSN", oriUserSsn);
+        }
+        reserve.put("ORI_USER_TRANS_DT", oriUserTransDt);
+        reserve.put("TRANS_DT", transDt);
+        reserve.put("TRANS_TM", transTm);
+        reserve.put("ORI_USER_D_ID", oriUserDId);
+        reserve.put("ORI_USER_D_NM", oriUserDNm);
+        reserve.put("ORI_USER_C_ID", oriUserCId);
+        reserve.put("ORI_USER_C_NM", oriUserCNm);
+        reserve.put("ORI_USER_C_AMT", oriUserCAmt);
+        reserve.put("FUND_TP", fundTp);
+        reserve.put("laasSsn", getLaasSsn(mchntId));
+        body.put("reserve", reserve);
+
+        return body;
+    }
+
+    /**
+     * 构建转账请求体 (bizFunc=27, appName="transfer")
+     * 参考 SaasZxTest#transferNew
+     */
+    public static Map<String, Object> buildTransferBody(String mchntId, String mchntMbrId,
+                                                        String chnlNo, String appId, String appKey, String url,
+                                                        String outAcctNoEnc, String inAcctNoEnc,
+                                                        String outAcctNm, String inAcctNm,
+                                                        String transAmt, String bussId, String bussSubId,
+                                                        String transDt, String transTm,
+                                                        String fundTp, String memo) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("transSsn", getTransSsn(mchntMbrId));
+        body.put("transTime", getTransTime());
+        body.put("mchntId", mchntId);
+        body.put("mchntMbrId", mchntMbrId);
+        body.put("bizFunc", "27");
+        body.put("chnlNo", chnlNo);
+        body.put("ccy", "CNY");
+        body.put("outAcctNo", outAcctNoEnc);
+        body.put("inAcctNo", inAcctNoEnc);
+        body.put("transAmt", transAmt);
+        body.put("laasSsn", getLaasSsn(mchntId));
+        body.put("appIdBank", appId);
+        body.put("appKeyBank", appKey);
+        body.put("urlBank", url);
+
+        // reserve 字段
+        Map<String, Object> reserve = new HashMap<>();
+        reserve.put("USER_D_NM", outAcctNm);
+        reserve.put("USER_C_NM", inAcctNm);
+        reserve.put("USER_C_AMT", transAmt);
+        reserve.put("P_SELF_FLAG", "N");
+        reserve.put("P_SELF_AMT", "0");
+        reserve.put("BUSS_ID", bussId);
+        if (bussSubId != null && !bussSubId.isEmpty()) {
+            reserve.put("BUSS_SUB_ID", bussSubId);
+        }
+        reserve.put("TRANS_DT", transDt);
+        reserve.put("TRANS_TM", transTm);
+        reserve.put("FUND_TP", fundTp);
+        reserve.put("MEMO", memo != null && !memo.isEmpty() ? memo : "失败交易退款");
+        reserve.put("laasSsn", getLaasSsn(mchntId));
+        body.put("reserve", reserve);
+
+        return body;
+    }
 }
